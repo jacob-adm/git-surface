@@ -267,7 +267,7 @@ def usage_and_version(opts, usage):
     return False
 
 
-def _error(message):
+def error(message):
     """Write `git-surface: <message>` to stderr as one line ending in LF."""
     if sys.stderr is None:
         return
@@ -295,13 +295,13 @@ def run(body):
     A closed stdout pipe is a quiet exit 0; Ctrl-C is exit 130; never a traceback.
     """
     if sys.stdout is None:
-        _error("standard output is not open")
+        error("standard output is not open")
         sys.exit(EXIT_ERROR)
     try:
         code = body()
         write_stdout(None)
     except Fail as exc:
-        _error(exc)
+        error(exc)
         code = EXIT_ERROR
     except KeyboardInterrupt:
         code = 128 + 2
@@ -309,6 +309,6 @@ def run(body):
         _discard_stdout()
         code = EXIT_NOTHING
     except Exception as exc:  # noqa: BLE001 - one line, never a traceback
-        _error("internal error: %s" % exc)
+        error("internal error: %s" % exc)
         code = EXIT_ERROR
     sys.exit(code)
