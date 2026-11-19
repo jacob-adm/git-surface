@@ -181,6 +181,17 @@ class SurfaceTest(unittest.TestCase):
             self.repo.git("config", key, value)
         self.assertEqual(self.repo.surface("main", data="b\n"), before)
 
+    def test_inter_hunk_context_config_keeps_line_numbers(self):
+        self.repo.write("pyproject.toml", '[project]\nname = "x"\n# a\n# b\n'
+                        '[build-system]\nrequires = ["setuptools"]\n')
+        self.repo.commit("pyproject")
+        self.on_branch("b", {"pyproject.toml": '[project]\nname = "y"\n# a\n# b\n'
+                             '[build-system]\nrequires = ["evil"]\n'})
+        before = self.run_one("b")
+        self.repo.git("config", "diff.interHunkContext", "10")
+        self.assertEqual(self.run_one("b"), before)
+        self.assertIn([b"b", b"install", b"M [build-system]", b"pyproject.toml"], before[1])
+
     def test_quoted_path_is_matched(self):
         self.on_branch("b", {"d\u00e9j\u00e0 vu/notes.md": "<img src=x>\n"})
         self.assertEqual(self.run_one("b"), (1, [

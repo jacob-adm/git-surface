@@ -118,7 +118,7 @@ def added_lines(mb, sha):
     """
     code, out, err = git(["diff", "-p", "-U0", "--text", "--no-color", "--submodule=short",
                           "--src-prefix=a/", "--dst-prefix=b/", "--diff-algorithm=myers",
-                          "--indent-heuristic"] + _DIFF_PINS + [mb, sha])
+                          "--indent-heuristic", "--inter-hunk-context=0"] + _DIFF_PINS + [mb, sha])
     if code != 0:
         raise Fail("git diff failed: %s" % git_error(err, code))
     result = {}

@@ -69,5 +69,5 @@ not an error.
 Both diffs `git surface` runs are pinned so that user configuration cannot change the result:
 renames off (a rename is a deletion and an addition), no external diff or textconv, paths
 relative to the root, submodule changes included, no colour, fixed prefixes, the default diff
-algorithm. `--text` is passed, so a `.gitattributes` entry that marks a file `binary` or `-diff`
+algorithm, no context lines between hunks. `--text` is passed, so a `.gitattributes` entry that marks a file `binary` or `-diff`
 does not hide its added lines. git runs without a shell and with `LC_ALL=C`.
