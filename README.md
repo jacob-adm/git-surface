@@ -58,7 +58,7 @@ page. Without installing, it also runs from a clone as `python3 -m git_surface`.
 5. **Read the report.** One line per finding, `ref TAB class TAB detail TAB path`. Like `grep`,
    the command exits 1 when it reports something, 0 when it reports nothing and 2 on an error.
 
-The full list of classes and rules is in [Classes](docs/classes.md).
+The full list of classes and rules is in [Classes](https://github.com/jacob-adm/git-surface/blob/main/docs/classes.md).
 
 ## Commands
 
@@ -66,7 +66,7 @@ The full list of classes and rules is in [Classes](docs/classes.md).
 git surface [-z] BASE < refs     report what each ref changes that runs or is trusted
 ```
 
-See [Commands](docs/commands.md) for the input, output, options and exit status.
+See [Commands](https://github.com/jacob-adm/git-surface/blob/main/docs/commands.md) for the input, output, options and exit status.
 
 ## Quick start
 
@@ -94,12 +94,14 @@ changes application code, so it has no line.
 
 ## Documentation
 
-- [Commands](docs/commands.md): input, output, options, exit status and errors.
-- [Classes](docs/classes.md): every class, the paths and content each one covers, and the detail
+- [Commands](https://github.com/jacob-adm/git-surface/blob/main/docs/commands.md): input, output, options, exit status and errors.
+- [Classes](https://github.com/jacob-adm/git-surface/blob/main/docs/classes.md): every class, the paths and content each one covers, and the detail
   field.
-- [Limitations and security](docs/limitations-and-security.md): what the command misses, and
+- [Limitations and security](https://github.com/jacob-adm/git-surface/blob/main/docs/limitations-and-security.md): what the command misses, and
   what it reads and runs.
+- [Contributing](https://github.com/jacob-adm/git-surface/blob/main/CONTRIBUTING.md): running the tests and contributing a change.
+- [Reporting a vulnerability](https://github.com/jacob-adm/git-surface/blob/main/SECURITY.md)
 
 ## License
 
-Apache-2.0; see `LICENSE`.
+Apache License 2.0; see [LICENSE](https://github.com/jacob-adm/git-surface/blob/main/LICENSE).
