@@ -15,7 +15,7 @@ to whoever runs it.
 
 ## Requirements
 
-- Python 3.8 or later, standard library only.
+- Python 3.9 or later, standard library only.
 - git 2.38 or later, as an executable named `git` on `PATH`.
 
 ## Install

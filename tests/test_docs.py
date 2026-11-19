@@ -67,7 +67,7 @@ class WorkflowTest(unittest.TestCase):
             self.skipTest("no CI configuration here (an unpacked sdist)")
         workflow = read(path)
         job = workflow[workflow.index("\n  old-git:\n"):]
-        self.assertIn("python:3.8-slim-bookworm", job)
+        self.assertIn("python:3.9-slim-bookworm", job)
         self.assertIn("apt-get install -y -qq --no-install-recommends git", job)
         self.assertIn("python -m unittest discover -s tests", job)
 

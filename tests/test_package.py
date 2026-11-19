@@ -26,7 +26,12 @@ class SdistTest(unittest.TestCase):
             self.skipTest("setuptools is older than 77, which pyproject.toml requires")
         out = tempfile.mkdtemp(prefix="git-surface-sdist-")
         self.addCleanup(shutil.rmtree, out, True)
-        proc = subprocess.run([sys.executable, "-c", BUILD, out], cwd=ROOT,
+        # Build from a copy: the build writes egg-info next to pyproject.toml, and the checkout
+        # may be read-only (the old-git CI job mounts it so).
+        src = os.path.join(out, "src")
+        shutil.copytree(ROOT, src, symlinks=True, ignore=shutil.ignore_patterns(
+            ".git", ".venv", "build", "dist", "*.egg-info", "__pycache__"))
+        proc = subprocess.run([sys.executable, "-c", BUILD, out], cwd=src,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         name = proc.stdout.decode("ascii").strip().splitlines()[-1]
