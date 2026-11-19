@@ -100,6 +100,8 @@ changes application code, so it has no line.
   field.
 - [Limitations and security](https://github.com/jacob-adm/git-surface/blob/main/docs/limitations-and-security.md): what the command misses, and
   what it reads and runs.
+- [Using it with other tools](https://github.com/jacob-adm/git-surface/blob/main/docs/other-tools.md): tested stacks with
+  git-overlap, trust-path, pr-merge-audit and release-drift.
 - [Contributing](https://github.com/jacob-adm/git-surface/blob/main/CONTRIBUTING.md): running the tests and contributing a change.
 - [Reporting a vulnerability](https://github.com/jacob-adm/git-surface/blob/main/SECURITY.md)
 
