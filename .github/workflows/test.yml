@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-15, windows-2022]
-        python: ["3.8", "3.13"]
+        python: ["3.9", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: >-
           docker run --rm -v "$PWD:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1
-          python:3.8-slim-bookworm sh -c 'apt-get update -qq &&
+          python:3.9-slim-bookworm sh -c 'apt-get update -qq &&
           apt-get install -y -qq --no-install-recommends git >/dev/null &&
           git --version && python -m unittest discover -s tests -v'
 
@@ -49,3 +49,9 @@ jobs:
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check --strict dist/*
+      # The sdist carries the suite; it must pass from the unpacked archive too.
+      - name: Tests pass from the unpacked sdist
+        run: |
+          mkdir sdist
+          tar -xzf dist/*.tar.gz -C sdist --strip-components=1
+          cd sdist && python -m unittest discover -s tests -v
