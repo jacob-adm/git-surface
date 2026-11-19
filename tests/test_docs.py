@@ -62,7 +62,10 @@ class WorkflowTest(unittest.TestCase):
         # README promises git 2.38 or later; CI must run the suite on a git that old, or the
         # nearest a pinned image ships (Debian bookworm: 2.39).
         self.assertIn("git 2.38 or later", read("README.md"))
-        workflow = read(os.path.join(".github", "workflows", "test.yml"))
+        path = os.path.join(".github", "workflows", "test.yml")
+        if not os.path.exists(os.path.join(ROOT, path)):
+            self.skipTest("no CI configuration here (an unpacked sdist)")
+        workflow = read(path)
         job = workflow[workflow.index("\n  old-git:\n"):]
         self.assertIn("python:3.8-slim-bookworm", job)
         self.assertIn("apt-get install -y -qq --no-install-recommends git", job)

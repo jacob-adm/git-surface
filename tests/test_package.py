@@ -17,13 +17,13 @@ BUILD = ("import sys\nfrom setuptools import build_meta\n"
 
 class SdistTest(unittest.TestCase):
 
-    def test_sdist_has_tests_and_docs(self):
+    def test_sdist_has_tests_docs_and_spdx_license(self):
         try:
             import setuptools
         except ImportError:
             self.skipTest("setuptools is not installed")
-        if int(setuptools.__version__.split(".")[0]) < 61:
-            self.skipTest("setuptools is older than 61")
+        if int(setuptools.__version__.split(".")[0]) < 77:
+            self.skipTest("setuptools is older than 77, which pyproject.toml requires")
         out = tempfile.mkdtemp(prefix="git-surface-sdist-")
         self.addCleanup(shutil.rmtree, out, True)
         proc = subprocess.run([sys.executable, "-c", BUILD, out], cwd=ROOT,
@@ -32,6 +32,12 @@ class SdistTest(unittest.TestCase):
         name = proc.stdout.decode("ascii").strip().splitlines()[-1]
         with tarfile.open(os.path.join(out, name)) as archive:
             members = set(m.split("/", 1)[1] for m in archive.getnames() if "/" in m)
+            info = archive.extractfile(name[:-len(".tar.gz")] + "/PKG-INFO").read()
+        # The SPDX form: no deprecated License field, and the license text ships.
+        self.assertIn(b"\nLicense-Expression: Apache-2.0\n", info)
+        self.assertIn(b"\nLicense-File: LICENSE\n", info)
+        self.assertNotIn(b"\nLicense: ", info)
+        self.assertIn("LICENSE", members)
         wanted = set()
         for folder, suffix in (("tests", ".py"), ("docs", ".md")):
             for entry in os.listdir(os.path.join(ROOT, folder)):
