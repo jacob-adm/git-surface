@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# The tests and the docs they check ship in the sdist, so the suite runs from it.
+graft tests
+graft docs
+global-exclude __pycache__ *.py[cod]
