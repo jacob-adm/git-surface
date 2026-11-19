@@ -36,4 +36,4 @@
   names in the detail are limited to a safe character set. On a terminal, control bytes in a
   ref or path are escaped so a crafted name cannot move the cursor or recolour the screen.
 - Git configuration that could change which lines count as added (diff algorithm, prefixes,
-  colour, submodule format, `.gitattributes` diff settings) is overridden on the command line.
+  colour, submodule format, inter-hunk context, `.gitattributes` diff settings) is overridden on the command line.
