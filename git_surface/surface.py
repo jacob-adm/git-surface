@@ -10,9 +10,9 @@ import re
 import sys
 
 from . import classify
-from ._common import (EXIT_FOUND, EXIT_NOTHING, Fail, check_safe, git, git_error,
-                      parse_args, read_records, resolve, run, show, usage_and_version,
-                      write_record)
+from ._common import (EXIT_ERROR, EXIT_FOUND, EXIT_NOTHING, Fail, check_safe, error, git,
+                      git_error, parse_args, read_records, resolve, run, show,
+                      usage_and_version, write_record)
 
 USAGE = """usage: git surface [-z] BASE < refs
 
@@ -21,7 +21,8 @@ since its merge base with BASE that touch what runs or is trusted:
   ref TAB class TAB detail TAB path
   class: ci, deps, exec, hidden, hook or install
 
-Exit status: 0 nothing reported, 1 something reported, 2 error.
+Exit status: 0 nothing reported, 1 something reported, 2 error. A ref that shares
+no history with BASE is named on stderr and skipped; the others are still reported.
 
   -z          records end with NUL instead of LF, on input and output
   -h          show this help
@@ -37,15 +38,15 @@ _C_ESCAPES = {ord("a"): 7, ord("b"): 8, ord("t"): 9, ord("n"): 10, ord("v"): 11,
               ord("f"): 12, ord("r"): 13, ord('"'): 34, ord("\\"): 92}
 
 
-def merge_base(base_sha, sha, ref, base):
-    """Return the merge base of BASE and a ref.
+def merge_base(base_sha, sha, ref):
+    """Return the merge base of BASE and a ref, or None if the two share no history.
 
     Raises:
-        Fail: The two share no history ("no merge base"), or git fails.
+        Fail: git fails.
     """
     code, out, err = git(["merge-base", base_sha, sha])
     if code == 1 and not out.strip():
-        raise Fail("no merge base between %s and %s" % (show(base), show(ref)))
+        return None
     if code != 0:
         raise Fail("git merge-base failed for %s: %s" % (show(ref), git_error(err, code)))
     return out.split(b"\n")[0].strip()
@@ -204,7 +205,7 @@ def surface(argv):
     """Run git surface; return the exit code.
 
     Raises:
-        Fail: A usage error, an unknown BASE or ref, an unsafe name or no merge base.
+        Fail: A usage error, an unknown BASE or ref, or an unsafe name.
     """
     opts, positionals = parse_args(argv, ("-z", "-h", "--version"))
     if usage_and_version(opts, USAGE):
@@ -230,15 +231,21 @@ def surface(argv):
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
     code = EXIT_NOTHING
+    skipped = False
     for number, ref, sha in refs:
         try:
-            mb = merge_base(base_sha, sha, ref, base)
+            mb = merge_base(base_sha, sha, ref)
+            if mb is None:
+                # Not fatal: name the ref, report the others, and exit 2 at the end.
+                error("%s: no merge base with %s" % (show(ref), show(base)))
+                skipped = True
+                continue
             for cls, detail, path in findings(mb, sha, zero):
                 write_record((ref, cls.encode("ascii"), detail.encode("ascii"), path), zero)
                 code = EXIT_FOUND
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
-    return code
+    return EXIT_ERROR if skipped else code
 
 
 def main():

@@ -288,9 +288,26 @@ class ErrorTest(unittest.TestCase):
     def test_no_merge_base(self):
         self.repo.git("checkout", "-q", "--orphan", "other")
         self.repo.commit("unrelated")
-        code, _, err = self.repo.surface("main", data="other\n")
+        self.assertEqual(self.repo.surface("main", data="other\n"),
+                         (2, b"", b"git-surface: other: no merge base with main\n"))
+
+    def test_refs_without_merge_base_are_skipped(self):
+        for name, path in (("a", "Makefile"), ("c", ".gitlab-ci.yml")):
+            self.repo.branch(name)
+            self.repo.write(path, "x\n")
+            self.repo.commit(name)
+        self.repo.git("checkout", "-q", "--orphan", "lone\u00e9")
+        self.repo.write(".travis.yml", "x\n")
+        self.repo.commit("unrelated")
+        self.repo.git("checkout", "-q", "--orphan", "lone2")
+        self.repo.commit("unrelated")
+        self.repo.git("checkout", "-q", "-f", "main")
+        code, out, err = self.repo.surface("main", data="a\nlone\u00e9\nc\nlone2\n")
         self.assertEqual(code, 2)
-        self.assertIn(b"no merge base between main and other", err)
+        self.assertEqual(records(out), [[b"a", b"exec", b"A", b"Makefile"],
+                                        [b"c", b"ci", b"A", b".gitlab-ci.yml"]])
+        self.assertEqual(err, b"git-surface: lone\\xc3\\xa9: no merge base with main\n"
+                              b"git-surface: lone2: no merge base with main\n")
 
     def test_empty_input_is_nothing_found(self):
         self.assertEqual(self.repo.surface("main", data=""), (0, b"", b""))

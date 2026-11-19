@@ -60,9 +60,14 @@ Any other argument, even one starting with `-`, is BASE. `--` ends option parsin
 
 Like `grep`: 0 ran and reported nothing, 1 ran and reported something, 2 error. Errors are one
 line on standard error, `git-surface: <message>`; an error about an input record starts with
-`record N: `. Errors include an unknown BASE or ref, a missing or extra BASE, and a ref that
-shares no history with BASE (`no merge base`). A reader that closes the pipe early (`| head`) is
-not an error.
+`record N: `. Errors include an unknown BASE or ref and a missing or extra BASE. A reader that
+closes the pipe early (`| head`) is not an error.
+
+A ref that shares no history with BASE (an orphan branch, say) has nothing to diff against. It
+does not stop the run: it is named on standard error as `git-surface: REF: no merge base with
+BASE`, escaped like every other error, and the other refs are still reported. The exit status
+is then 2, whatever else was reported, so a script cannot mistake a partial report for a whole
+one.
 
 ### The diff
 
