@@ -180,14 +180,14 @@ def findings(mb, sha, zero):
             if names is None:
                 found.add(("install", status + " unparsed", path))
             else:
-                deps_detail += "".join(" +" + n for n in names)
+                deps_detail += "".join(" " + word for word in names)
                 if scripts:
                     found.add(("install", status + "".join(" scripts." + k for k in scripts),
                                path))
         elif name.lower().startswith(b"requirements") and name.lower().endswith(b".txt"):
-            names = classify.requirements_added(blob(old_oid, old_mode),
-                                                 blob(new_oid, new_mode))
-            deps_detail += "".join(" +" + n for n in names)
+            words = classify.requirements_changes(blob(old_oid, old_mode),
+                                                  blob(new_oid, new_mode))
+            deps_detail += "".join(" " + word for word in words)
         elif name == b"pyproject.toml" and lines:
             numbers = set(n for n, _ in lines)
             if classify.build_system_touched(blob(new_oid, new_mode) or b"", numbers):

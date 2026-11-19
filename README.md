@@ -51,7 +51,8 @@ page. Without installing, it also runs from a clone as `python3 -m git_surface`.
    Changes BASE made after the branch left it are not the branch's.
 3. **Classify each changed path.** By its name, a path may be `ci`, `hook`, `install`, `deps` or
    `exec`; a file that becomes executable is `exec` too. `package.json`, `pyproject.toml` and
-   `requirements*.txt` are read to name new dependencies and changed install steps.
+   `requirements*.txt` are read to name added and removed dependencies, version changes and
+   changed install steps.
 4. **Check the added lines.** Only lines the branch adds are read. An HTML tag such as `<img>` or
    `<script>`, or an HTML comment, on an added line of a Markdown file, or an invisible or
    bidirectional Unicode character on an added line of any text file, is `hidden`.

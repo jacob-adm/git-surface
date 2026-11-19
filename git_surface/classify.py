@@ -173,8 +173,32 @@ def build_system_touched(new_text, added_numbers):
     return False
 
 
-# Names printed in a detail field: printable, no spaces, so the field stays one word each.
-_SAFE_NAME = re.compile(r"\A[A-Za-z0-9@/._~-]+\Z")
+# Names and versions printed in a detail field: printable, no spaces, so each stays one word.
+# A name starts with a letter, digit or @, so "-name" (removed) cannot be misread; a version
+# may not contain "->", which separates the old version from the new.
+_SAFE_NAME = re.compile(r"\A[A-Za-z0-9@][A-Za-z0-9@/._~-]*\Z")
+_SAFE_VERSION = re.compile(r"\A(?!.*->)[A-Za-z0-9@/._~^<>=*+:!-]+\Z")
+# One == pin, optionally followed by an environment marker, a line continuation or options
+# such as --hash.
+_PIN = re.compile(r"\A==\s*([^\s,;=\\]+)\s*(?:[;\\].*|--.*)?\Z")
+
+
+def dependency_changes(old, new):
+    """Return the detail words for two {name: version or None} maps.
+
+    "+name" for each added name, "-name" for each removed one, then "name old->new" for each
+    name whose version changed while both versions are known. Each group is sorted. A name or
+    version with characters outside the safe sets is left out.
+    """
+    names = sorted(name for name in set(old) | set(new) if _SAFE_NAME.match(name))
+    words = ["+" + name for name in names if name not in old]
+    words += ["-" + name for name in names if name not in new]
+    for name in names:
+        before, after = old.get(name), new.get(name)
+        if (name in old and name in new and before != after
+                and all(isinstance(v, str) and _SAFE_VERSION.match(v) for v in (before, after))):
+            words.append("%s %s->%s" % (name, before, after))
+    return words
 
 
 def _load_json(text):
@@ -196,7 +220,7 @@ def package_json_changes(old_text, new_text):
         new_text: The new content (bytes), or None if the file was deleted.
 
     Returns:
-        (new dependency names, changed lifecycle script keys), both sorted lists; or
+        (dependency detail words, changed lifecycle script keys), both sorted lists; or
         (None, None) if either side is not a JSON object.
     """
     old, new = _load_json(old_text), _load_json(new_text)
@@ -204,39 +228,48 @@ def package_json_changes(old_text, new_text):
         return None, None
 
     def deps(data):
-        names = set()
+        # A name in several sections takes its version from the first section listing it.
+        found = {}
         for key in ("dependencies", "devDependencies", "optionalDependencies",
                     "peerDependencies"):
             section = data.get(key)
             if isinstance(section, dict):
-                names.update(section)
-        return names
+                for name, version in section.items():
+                    found.setdefault(name, version)
+        return found
 
     def scripts(data):
         section = data.get("scripts")
         return section if isinstance(section, dict) else {}
 
-    added = sorted(name for name in deps(new) - deps(old) if _SAFE_NAME.match(name))
     old_scripts, new_scripts = scripts(old), scripts(new)
     changed = [key for key in NPM_LIFECYCLE if old_scripts.get(key) != new_scripts.get(key)]
-    return added, sorted(changed)
+    return dependency_changes(deps(old), deps(new)), sorted(changed)
 
 
-def _requirement_names(text):
-    """Return the normalised project names listed in a requirements file."""
-    names = set()
+def _requirements(text):
+    """Return {normalised project name: == pin or None} for a requirements file.
+
+    The first line naming a project wins.
+    """
+    found = {}
     if text is None:
-        return names
+        return found
     for line in text.decode("utf-8", "replace").splitlines():
         line = line.split("#", 1)[0].strip()
         # Options (-r, -e, --hash, ...) and URLs are not names.
-        match = re.match(r"([A-Za-z0-9][A-Za-z0-9._-]*)", line)
+        match = re.match(r"([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*", line)
         if match and not line.startswith("-") and not re.match(r"[A-Za-z0-9+.-]+://", line):
             # PEP 503 normalisation, so "Foo_Bar" and "foo-bar" are the same project.
-            names.add(re.sub(r"[-_.]+", "-", match.group(1)).lower())
-    return names
+            name = re.sub(r"[-_.]+", "-", match.group(1)).lower()
+            pin = _PIN.match(line[match.end():])
+            found.setdefault(name, pin.group(1) if pin else None)
+    return found
 
 
-def requirements_added(old_text, new_text):
-    """Return the sorted project names in the new requirements file but not the old."""
-    return sorted(_requirement_names(new_text) - _requirement_names(old_text))
+def requirements_changes(old_text, new_text):
+    """Return the dependency detail words for two versions of a requirements file.
+
+    A version change is reported only when both versions pin the project with one `==`.
+    """
+    return dependency_changes(_requirements(old_text), _requirements(new_text))
