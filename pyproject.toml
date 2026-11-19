@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git-surface"
+version = "0.1.0"
+description = "A git subcommand that reports which branches change what runs or is trusted."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+dependencies = []
+keywords = ["git", "pull-request", "code-review", "supply-chain", "security", "cli"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+
+[project.urls]
+Source = "https://github.com/jacob-adm/git-surface"
+
+[project.scripts]
+git-surface = "git_surface.surface:main"
+
+[tool.setuptools]
+packages = ["git_surface"]
