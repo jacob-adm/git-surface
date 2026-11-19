@@ -11,7 +11,8 @@
   is not reported. A file that a listed file calls, such as a script a workflow runs, is
   reported only if it matches a rule itself.
 - **Dependencies are named for `package.json` and `requirements*.txt` only.** Other manifests
-  report that they changed, not what was added. `pyproject.toml` is read for its
+  report that they changed, not what was added, removed or re-versioned. In
+  `requirements*.txt` only `==` pins give a version change. `pyproject.toml` is read for its
   `[build-system]` table only, line by line, not with a TOML parser. Lockfiles are never read.
 - **Hidden HTML is checked in Markdown only**, and only for the tags listed in
   [Classes](classes.md). HTML entities, Markdown link titles, white-on-white styling and

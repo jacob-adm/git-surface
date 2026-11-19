@@ -76,7 +76,7 @@ class SurfaceTest(unittest.TestCase):
             "package-lock.json": "{}\n"})
         self.assertEqual(self.run_one("b"), (1, [
             [b"b", b"deps", b"A", b"package-lock.json"],
-            [b"b", b"deps", b"M +@scope/x +evil", b"package.json"],
+            [b"b", b"deps", b"M +@scope/x +evil a 1->2", b"package.json"],
             [b"b", b"install", b"M scripts.postinstall", b"package.json"]]))
 
     def test_unparsable_package_json(self):
@@ -103,14 +103,52 @@ class SurfaceTest(unittest.TestCase):
             [b"b", b"deps", b"A", b"pyproject.toml"],
             [b"b", b"deps", b"A", b"requirements.txt"]]))
 
-    def test_requirements_new_names_only(self):
-        self.repo.write("requirements.txt", "requests==2.0\n")
+    def test_requirements_added_removed_and_pinned(self):
+        self.repo.write("requirements.txt", "requests==2.0\nsix==1.16.0\nidna>=2\n"
+                                            "Old.Pkg==1\nflask==1.0\nattrs==22 --hash=sha256:aa\n")
         self.repo.commit("req")
         self.on_branch("b", {"requirements.txt":
-                             "requests==3.0\nFoo_Bar>=1  # new\n-r other.txt\n"
+                             "requests == 3.0 ; python_version >= '3.8'\nsix==1.16.0\n"
+                             "idna>=3\nFoo_Bar>=1  # new\nflask>=1.0\n-r other.txt\n"
+                             "attrs[tests]==23 \\\n    --hash=sha256:bb\n"
                              "git+https://example.invalid/x.git\n"})
+        # A bump is reported only between two == pins; idna and flask are not pins on both
+        # sides, so they show no change.
         self.assertEqual(self.run_one("b"), (1, [
-            [b"b", b"deps", b"M +foo-bar", b"requirements.txt"]]))
+            [b"b", b"deps", b"M +foo-bar -old-pkg attrs 22->23 requests 2.0->3.0",
+             b"requirements.txt"]]))
+
+    def test_package_json_removed_and_bumped(self):
+        self.repo.write("package.json", '{"dependencies": {"a": "^1.0.0", "gone": "1",'
+                                        ' "same": "2"}, "devDependencies": {"b": "1"},'
+                                        ' "peerDependencies": {"a": "1"}}\n')
+        self.repo.commit("pkg")
+        self.on_branch("b", {"package.json":
+                             '{"dependencies": {"a": "^1.2.0", "same": "2"},'
+                             ' "devDependencies": {"b": "2.0.0-beta.1"},'
+                             ' "peerDependencies": {"a": "9"}}\n'})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"M -gone a ^1.0.0->^1.2.0 b 1->2.0.0-beta.1", b"package.json"]]))
+
+    def test_unsafe_names_and_versions_are_left_out(self):
+        self.repo.write("package.json", '{"dependencies": {"a": "1", "b": "1", "c": "1",'
+                                        ' "d": "1"}}\n')
+        self.repo.commit("pkg")
+        self.on_branch("b", {"package.json":
+                             '{"dependencies": {"a": ">=1 <2", "b": "1->2", "c": {"x": 1},'
+                             ' "d": "2", "-e": "1", "f g": "1"}}\n'})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"M d 1->2", b"package.json"]]))
+
+    def test_deleted_manifest_names_removed_dependencies(self):
+        self.repo.write("requirements-dev.txt", "pytest==8\n")
+        self.repo.commit("req")
+        self.repo.branch("b")
+        self.repo.remove("requirements-dev.txt")
+        self.repo.commit("b")
+        self.repo.git("checkout", "-q", "-f", "main")
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"D -pytest", b"requirements-dev.txt"]]))
 
     def test_install_files(self):
         self.on_branch("b", {"setup.py": "import os\n", "pkg/evil.pth": "import os\n"})

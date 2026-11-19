@@ -48,16 +48,46 @@ Detail: the status letter.
   `composer.lock`, `pom.xml`, `build.gradle`, `build.gradle.kts`, `gradle.lockfile`,
   `packages.lock.json`, any `*.gemspec`, and any `requirements*.txt`.
 
-Detail: the status letter, then `+NAME` for each new dependency where the file is cheap to read:
+Detail: the status letter, then, where the file is cheap to read, one word for each added or
+removed dependency and two for each version change:
+
+- `+NAME`: a dependency the old version did not have (every one, for a new file);
+- `-NAME`: a dependency the new version no longer has (every one, for a deleted file);
+- `NAME OLD->NEW`: a dependency both versions have, whose version changed.
+
+They come in that order, `+` words, then `-` words, then version changes, each group sorted by
+name, for example `M +left-pad -lodash express 4.18.2->4.19.2`. Which files are read:
 
 - `package.json`: names in `dependencies`, `devDependencies`, `optionalDependencies` and
-  `peerDependencies` that the old version did not have. A name with characters outside
-  `A-Z a-z 0-9 @ / . _ ~ -` is left out of the detail.
-- `requirements*.txt`: project names (normalised: lower case, runs of `-_.` as `-`) that the old
-  version did not list. Option lines (`-r`, `-e`, ...) and URL lines are skipped.
+  `peerDependencies`. A name in several of them takes its version from the first in that
+  order. Any change of the version string is a version change, so a range shows as written
+  (`^1.0.0->^1.2.0`).
+- `requirements*.txt`: project names, normalised (lower case, runs of `-_.` as `-`). A version
+  change is reported only when both versions pin the project with a single `==` (an
+  environment marker, a trailing `\` or options such as `--hash` may follow the pin); a change
+  to or from a range shows no version words. The first line naming a project counts. Option
+  lines (`-r`, `-e`, ...) and URL lines are skipped.
 
-A version change of an existing dependency shows as the status letter alone. Other manifests
-and every lockfile report the status letter only.
+A name must start with a letter, a digit or `@` and contain only `A-Z a-z 0-9 @ / . _ ~ -`; a
+version may contain only those and `^ < > = * + : !`, and not `->`. Other names, and version
+changes with other versions (a range with spaces, a version that is not a string), are left out
+of the detail, so every word is printable ASCII without spaces. Other manifests and every
+lockfile report the status letter only.
+
+To list the version changes as `NAME TAB OLD TAB NEW`, one per line, for a tool that fetches a
+package by name and version (such as `release-drift fetch`):
+
+```sh
+git surface main < refs | awk -F'\t' '$2 == "deps" {
+    n = split($3, w, " ")
+    for (i = 2; i < n; i++) if (w[i] !~ /^[+-]/ && w[i+1] ~ /->/) {
+        split(w[i+1], v, "->"); print w[i] "\t" v[1] "\t" v[2]; i++
+    }
+}'
+```
+
+A pinned requirement gives exact versions; a `package.json` range must be resolved to a version
+first.
 
 ## exec: build and shell files, and files that become executable
 
