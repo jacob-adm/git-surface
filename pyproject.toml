@@ -22,7 +22,10 @@ classifiers = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/jacob-adm/git-surface"
+Documentation = "https://github.com/jacob-adm/git-surface/tree/main/docs"
 Source = "https://github.com/jacob-adm/git-surface"
+Issues = "https://github.com/jacob-adm/git-surface/issues"
 
 [project.scripts]
 git-surface = "git_surface.surface:main"
