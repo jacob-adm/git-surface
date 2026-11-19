@@ -183,7 +183,7 @@ def _load_json(text):
         return {}
     try:
         data = json.loads(text.decode("utf-8"))
-    except ValueError:
+    except (ValueError, RecursionError):
         return None
     return data if isinstance(data, dict) else None
 

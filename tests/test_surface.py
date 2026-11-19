@@ -85,6 +85,24 @@ class SurfaceTest(unittest.TestCase):
             [b"b", b"deps", b"A", b"package.json"],
             [b"b", b"install", b"A unparsed", b"package.json"]]))
 
+    def test_deeply_nested_package_json_is_unparsed(self):
+        self.on_branch("b", {"package.json": "[" * 100000 + "]" * 100000 + "\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"A", b"package.json"],
+            [b"b", b"install", b"A unparsed", b"package.json"]]))
+
+    def test_submodule_at_a_manifest_path_does_not_abort(self):
+        commit = self.repo.git("rev-parse", "HEAD").strip().decode("ascii")
+        self.repo.branch("b")
+        for path in ("requirements.txt", "pyproject.toml", "package.json"):
+            self.repo.git("update-index", "--add", "--cacheinfo", "160000", commit, path)
+        self.repo.commit("b")
+        self.repo.git("checkout", "-q", "-f", "main")
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"A", b"package.json"],
+            [b"b", b"deps", b"A", b"pyproject.toml"],
+            [b"b", b"deps", b"A", b"requirements.txt"]]))
+
     def test_requirements_new_names_only(self):
         self.repo.write("requirements.txt", "requests==2.0\n")
         self.repo.commit("req")

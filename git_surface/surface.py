@@ -142,9 +142,9 @@ def added_lines(mb, sha):
     return result
 
 
-def blob(oid):
-    """Return a blob's content, or None for the all-zero id of an absent file."""
-    if _NULL_OID.match(oid):
+def blob(oid, mode):
+    """Return a blob's content, or None for an absent file or a submodule (mode 160000)."""
+    if _NULL_OID.match(oid) or mode == b"160000":
         return None
     code, out, err = git(["cat-file", "blob", oid])
     if code != 0:
@@ -174,7 +174,8 @@ def findings(mb, sha, zero):
             found.add(("exec", status + plus_x, path))
         deps_detail = status
         if name == b"package.json":
-            names, scripts = classify.package_json_changes(blob(old_oid), blob(new_oid))
+            names, scripts = classify.package_json_changes(blob(old_oid, old_mode),
+                                                         blob(new_oid, new_mode))
             if names is None:
                 found.add(("install", status + " unparsed", path))
             else:
@@ -183,11 +184,12 @@ def findings(mb, sha, zero):
                     found.add(("install", status + "".join(" scripts." + k for k in scripts),
                                path))
         elif name.lower().startswith(b"requirements") and name.lower().endswith(b".txt"):
-            names = classify.requirements_added(blob(old_oid), blob(new_oid))
+            names = classify.requirements_added(blob(old_oid, old_mode),
+                                                 blob(new_oid, new_mode))
             deps_detail += "".join(" +" + n for n in names)
         elif name == b"pyproject.toml" and lines:
             numbers = set(n for n, _ in lines)
-            if classify.build_system_touched(blob(new_oid), numbers):
+            if classify.build_system_touched(blob(new_oid, new_mode) or b"", numbers):
                 found.add(("install", status + " [build-system]", path))
         if "deps" in classes:
             found.add(("deps", deps_detail, path))

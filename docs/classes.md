@@ -34,7 +34,9 @@ Detail: the status letter.
 - `package.json` when one of the npm scripts `preinstall`, `install`, `postinstall`, `prepare`,
   `prepack`, `postpack` or `prepublish` is added, changed or removed. Detail: the status letter
   and each such script, for example `M scripts.postinstall`.
-- `package.json` when either version is not a JSON object, so its scripts cannot be compared.
+- `package.json` when either version is not a JSON object (or is nested too deeply for Python's
+  JSON parser), so its scripts cannot be compared. A submodule at a manifest path has no content
+  to read and counts as an empty file.
   Detail: the status letter and `unparsed`, for example `M unparsed`.
 
 ## deps: dependency manifests and lockfiles
