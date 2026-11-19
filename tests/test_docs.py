@@ -56,5 +56,18 @@ class ClassesDocTest(unittest.TestCase):
             self.assertIn("U+%04X" % last, doc)
 
 
+class WorkflowTest(unittest.TestCase):
+
+    def test_suite_runs_on_the_oldest_git(self):
+        # README promises git 2.38 or later; CI must run the suite on a git that old, or the
+        # nearest a pinned image ships (Debian bookworm: 2.39).
+        self.assertIn("git 2.38 or later", read("README.md"))
+        workflow = read(os.path.join(".github", "workflows", "test.yml"))
+        job = workflow[workflow.index("\n  old-git:\n"):]
+        self.assertIn("python:3.8-slim-bookworm", job)
+        self.assertIn("apt-get install -y -qq --no-install-recommends git", job)
+        self.assertIn("python -m unittest discover -s tests", job)
+
+
 if __name__ == "__main__":
     unittest.main()
