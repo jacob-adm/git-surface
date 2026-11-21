@@ -6,15 +6,16 @@ straight in), diffs each against its merge base with BASE, and writes
 `ref TAB class TAB detail TAB path` records. It reports; it never blocks anything.
 """
 
+import json
 import re
 import sys
 
 from . import classify
 from ._common import (EXIT_ERROR, EXIT_FOUND, EXIT_NOTHING, Fail, check_safe, error, git,
                       git_error, parse_args, read_records, resolve, run, show,
-                      usage_and_version, write_record)
+                      usage_and_version, write_record, write_stdout)
 
-USAGE = """usage: git surface [-z] BASE < refs
+USAGE = """usage: git surface [-z] [--json] BASE < refs
 
 For each ref on stdin (the first TAB-separated field of each record), report the changes
 since its merge base with BASE that touch what runs or is trusted:
@@ -25,6 +26,8 @@ Exit status: 0 nothing reported, 1 something reported, 2 error. A ref that share
 no history with BASE is named on stderr and skipped; the others are still reported.
 
   -z          records end with NUL instead of LF, on input and output
+  --json      write the same records as a JSON array of objects with the keys
+              ref, class, detail and path
   -h          show this help
   --version   show the version"""
 
@@ -236,18 +239,29 @@ def findings(mb, sha, zero):
     return sorted(found, key=lambda f: (f[0], f[2], f[1].encode("ascii")))
 
 
+def _text(name):
+    """Decode a ref or path for JSON; bytes that are not UTF-8 become \\udc80-\\udcff.
+
+    surrogateescape keeps every byte, so a reader can recover the original name.
+    """
+    return name.decode("utf-8", "surrogateescape")
+
+
 def surface(argv):
     """Run git surface; return the exit code.
 
     Raises:
         Fail: A usage error, an unknown BASE or ref, or an unsafe name.
     """
-    opts, positionals = parse_args(argv, ("-z", "-h", "--version"))
+    opts, positionals = parse_args(argv, ("-z", "--json", "-h", "--version"))
     if usage_and_version(opts, USAGE):
         return EXIT_NOTHING
     if len(positionals) != 1:
         raise Fail("expected exactly one BASE argument (see -h)")
     zero = bool(opts.get("-z"))
+    as_json = bool(opts.get("--json"))
+    # JSON escapes TAB, LF and CR, so names LF records cannot hold are written there.
+    safe = zero or as_json
     base = positionals[0]
     base_sha = resolve(base)
     refs = []
@@ -261,12 +275,13 @@ def surface(argv):
             continue
         seen.add(ref)
         try:
-            check_safe(ref, zero, "ref")
+            check_safe(ref, safe, "ref")
             refs.append((number, ref, resolve(ref)))
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
     code = EXIT_NOTHING
     skipped = False
+    rows = []
     for number, ref, sha in refs:
         try:
             mb = merge_base(base_sha, sha, ref)
@@ -275,11 +290,18 @@ def surface(argv):
                 error("%s: no merge base with %s" % (show(ref), show(base)))
                 skipped = True
                 continue
-            for cls, detail, path in findings(mb, sha, zero):
-                write_record((ref, cls.encode("ascii"), detail.encode("ascii"), path), zero)
+            for cls, detail, path in findings(mb, sha, safe):
                 code = EXIT_FOUND
+                if as_json:
+                    rows.append({"ref": _text(ref), "class": cls, "detail": detail,
+                                 "path": _text(path)})
+                else:
+                    write_record((ref, cls.encode("ascii"), detail.encode("ascii"), path),
+                                 zero)
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
+    if as_json:
+        write_stdout(json.dumps(rows, indent=2, sort_keys=True).encode("ascii") + b"\n")
     return EXIT_ERROR if skipped else code
 
 

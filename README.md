@@ -64,7 +64,7 @@ The full list of classes and rules is in [Classes](https://github.com/jacob-adm/
 ## Commands
 
 ```
-git surface [-z] BASE < refs     report what each ref changes that runs or is trusted
+git surface [-z] [--json] BASE < refs     report what each ref changes that runs or is trusted
 ```
 
 See [Commands](https://github.com/jacob-adm/git-surface/blob/main/docs/commands.md) for the input, output, options and exit status.
