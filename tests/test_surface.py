@@ -136,6 +136,30 @@ class SurfaceTest(unittest.TestCase):
             [b"b", b"deps", b"A", b"pyproject.toml"],
             [b"b", b"deps", b"A", b"requirements.txt"]]))
 
+    def test_pyproject_dependencies_named(self):
+        self.repo.write("pyproject.toml", '[project]\nname = "x"\ndependencies = [\n'
+                        '  "requests==2.31.0",\n  "six",\n]\n')
+        self.repo.commit("base")
+        self.on_branch("b", {"pyproject.toml":
+                             '[project]\nname = "x"\ndependencies = [\n'
+                             '  "requests==2.32.0",  # pin [bumped]\n  "evil-pkg==1.0",\n]\n\n'
+                             '[project.optional-dependencies]\ntest = ["pytest"]\n\n'
+                             '[dependency-groups]\ndev = [{include-group = "test"}]\n'})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"M +evil-pkg +pytest -six requests 2.31.0->2.32.0",
+             b"pyproject.toml"]]))
+
+    def test_pyproject_poetry_tables(self):
+        self.repo.write("pyproject.toml", '[tool.poetry.dependencies]\npython = "^3.9"\n'
+                        'click = "^8.1"\n')
+        self.repo.commit("base")
+        self.on_branch("b", {"pyproject.toml":
+                             '[tool.poetry.dependencies]\npython = "^3.10"\nclick = "^8.2"\n'
+                             'rich = {version = "13.7.0", optional = true}\n\n'
+                             '[tool.poetry.group.docs.dependencies]\nmkdocs = "1.6"\n'})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"deps", b"M +mkdocs +rich click ^8.1->^8.2", b"pyproject.toml"]]))
+
     def test_requirements_added_removed_and_pinned(self):
         self.repo.write("requirements.txt", "requests==2.0\nsix==1.16.0\nidna>=2\n"
                                             "Old.Pkg==1\nflask==1.0\nattrs==22 --hash=sha256:aa\n")

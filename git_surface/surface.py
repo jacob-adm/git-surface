@@ -192,9 +192,12 @@ def findings(mb, sha, zero):
             words = classify.requirements_changes(blob(old_oid, old_mode),
                                                   blob(new_oid, new_mode))
             deps_detail += "".join(" " + word for word in words)
-        elif name == b"pyproject.toml" and lines:
+        elif name == b"pyproject.toml":
+            new_text = blob(new_oid, new_mode)
+            words = classify.pyproject_changes(blob(old_oid, old_mode), new_text)
+            deps_detail += "".join(" " + word for word in words)
             numbers = set(n for n, _ in lines)
-            if classify.build_system_touched(blob(new_oid, new_mode) or b"", numbers):
+            if numbers and classify.build_system_touched(new_text or b"", numbers):
                 found.add(("install", status + " [build-system]", path))
         if "deps" in classes:
             found.add(("deps", deps_detail, path))
