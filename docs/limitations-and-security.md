@@ -10,10 +10,12 @@
   executable bit), a CI system not in the list, or a build step defined inside an unlisted file
   is not reported. A file that a listed file calls, such as a script a workflow runs, is
   reported only if it matches a rule itself.
-- **Dependencies are named for `package.json` and `requirements*.txt` only.** Other manifests
-  report that they changed, not what was added, removed or re-versioned. In
-  `requirements*.txt` only `==` pins give a version change. `pyproject.toml` is read for its
-  `[build-system]` table only, line by line, not with a TOML parser. Lockfiles are never read.
+- **Dependencies are named for `package.json`, `requirements*.txt` and `pyproject.toml`
+  only.** Other manifests report that they changed, not what was added, removed or
+  re-versioned. In `requirements*.txt` and the PEP 621 lists of `pyproject.toml` only `==` pins
+  give a version change. `pyproject.toml` is read with a small scanner, not a full TOML parser
+  (Python 3.9 has none): dependencies given as dotted keys (`project.dependencies = [...]` at
+  the top) or inside an inline `project = {...}` table are not read. Lockfiles are never read.
 - **Hidden HTML is checked in Markdown only**, and only for the tags listed in
   [Classes](classes.md). HTML entities, Markdown link titles, white-on-white styling and
   homoglyphs (look-alike letters) are not checked.

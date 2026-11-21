@@ -91,6 +91,11 @@ name, for example `M +left-pad -lodash express 4.18.2->4.19.2`. Which files are 
   environment marker, a trailing `\` or options such as `--hash` may follow the pin); a change
   to or from a range shows no version words. The first line naming a project counts. Option
   lines (`-r`, `-e`, ...) and URL lines are skipped.
+- `pyproject.toml`: `dependencies` in `[project]` and every list in
+  `[project.optional-dependencies]` and `[dependency-groups]`, read as requirements are (an
+  `include-group` entry is not a name); and Poetry's `[tool.poetry.dependencies]`,
+  `[tool.poetry.dev-dependencies]` and `[tool.poetry.group.NAME.dependencies]`, where any change
+  of a version string is a version change and the `python` key is not a dependency.
 
 A name must start with a letter, a digit or `@` and contain only `A-Z a-z 0-9 @ / . _ ~ -`; a
 version may contain only those and `^ < > = * + : !`, and not `->`. Other names, and version

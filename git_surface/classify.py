@@ -288,6 +288,22 @@ def package_json_changes(old_text, new_text):
     return dependency_changes(deps(old), deps(new)), sorted(changed)
 
 
+def _normalise(name):
+    """PEP 503 normalisation, so "Foo_Bar" and "foo-bar" are the same project."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _requirement(line):
+    """Return (normalised name, == pin or None) for one requirement, or None if it names none."""
+    line = line.strip()
+    # Options (-r, -e, --hash, ...) and URLs are not names.
+    match = re.match(r"([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*", line)
+    if not match or line.startswith("-") or re.match(r"[A-Za-z0-9+.-]+://", line):
+        return None
+    pin = _PIN.match(line[match.end():])
+    return _normalise(match.group(1)), pin.group(1) if pin else None
+
+
 def _requirements(text):
     """Return {normalised project name: == pin or None} for a requirements file.
 
@@ -297,15 +313,128 @@ def _requirements(text):
     if text is None:
         return found
     for line in text.decode("utf-8", "replace").splitlines():
-        line = line.split("#", 1)[0].strip()
-        # Options (-r, -e, --hash, ...) and URLs are not names.
-        match = re.match(r"([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*", line)
-        if match and not line.startswith("-") and not re.match(r"[A-Za-z0-9+.-]+://", line):
-            # PEP 503 normalisation, so "Foo_Bar" and "foo-bar" are the same project.
-            name = re.sub(r"[-_.]+", "-", match.group(1)).lower()
-            pin = _PIN.match(line[match.end():])
-            found.setdefault(name, pin.group(1) if pin else None)
+        req = _requirement(line.split("#", 1)[0])
+        if req:
+            found.setdefault(*req)
     return found
+
+
+# --- pyproject.toml ---------------------------------------------------------------------
+#
+# Python 3.9 has no TOML parser, so the tables that list dependencies are read with a small
+# scanner: table headers line by line, and each value as TOML strings, arrays and inline tables.
+
+_TOML_TABLE = re.compile(r"\s*\[(\[?)\s*([^\]]*?)\s*\]\]?\s*(?:#.*)?\Z")
+_TOML_KEY = re.compile(r"\s*(\"[^\"]*\"|'[^']*'|[A-Za-z0-9_.-]+)\s*=\s*")
+_TOML_STRING = re.compile(r'"((?:[^"\\]|\\.)*)"|\'([^\']*)\'')
+
+
+def _table_name(raw):
+    """Return a table header's dotted name with quotes and spaces around its parts removed."""
+    parts = re.findall(r'"([^"]*)"|\'([^\']*)\'|([^.\s"\']+)', raw)
+    return ".".join(next((p for p in part if p), "") for part in parts)
+
+
+def _toml_value(lines, i, start):
+    """Return (value text, index of the line after it) for the value starting at lines[i][start:].
+
+    An array may span lines; brackets inside strings and comments are not counted.
+    """
+    text, depth, quote = "", 0, None
+    while i < len(lines):
+        line = lines[i][start:]
+        start = 0
+        j = 0
+        while j < len(line):
+            ch = line[j]
+            if quote:
+                if ch == "\\" and quote == '"':
+                    j += 1
+                elif ch == quote:
+                    quote = None
+            elif ch in "\"'":
+                quote = ch
+            elif ch == "#":
+                line = line[:j]
+                break
+            elif ch in "[{":
+                depth += 1
+            elif ch in "]}":
+                depth -= 1
+            j += 1
+        text += line + "\n"
+        i += 1
+        if depth <= 0:
+            break
+    return text, i
+
+
+def _array_strings(value):
+    """Return the strings directly in a TOML array, skipping those inside inline tables."""
+    found, depth, pos = [], 0, 0
+    for match in _TOML_STRING.finditer(value):
+        depth += value.count("{", pos, match.start()) - value.count("}", pos, match.start())
+        pos = match.end()
+        if depth == 0:
+            found.append(match.group(1) if match.group(1) is not None else match.group(2))
+    return found
+
+
+def _poetry_version(value):
+    """Return the version of a Poetry dependency: a string, or the version key of a table."""
+    value = value.strip()
+    match = (re.match(r"\{.*?\bversion\s*=\s*(\"[^\"]*\"|'[^']*')", value)
+             or re.match(r"(\"[^\"]*\"|'[^']*')", value))
+    return match.group(1)[1:-1] if match else None
+
+
+def _is_poetry_table(name):
+    """Return True for a Poetry table that lists dependencies."""
+    return (name in ("tool.poetry.dependencies", "tool.poetry.dev-dependencies")
+            or re.match(r"tool\.poetry\.group\.[^.]+\.dependencies\Z", name) is not None)
+
+
+def pyproject_dependencies(text):
+    """Return {normalised name: == pin, Poetry version or None} from a pyproject.toml.
+
+    Read: `dependencies` in [project], every list in [project.optional-dependencies] and
+    [dependency-groups] (PEP 621 and PEP 735; `include-group` entries are not names), and
+    Poetry's [tool.poetry.dependencies], [tool.poetry.dev-dependencies] and
+    [tool.poetry.group.NAME.dependencies] (the `python` key is not a dependency). The first
+    entry naming a project wins.
+    """
+    found = {}
+    if text is None:
+        return found
+    lines = text.decode("utf-8", "replace").split("\n")
+    table, i = "", 0
+    while i < len(lines):
+        header = _TOML_TABLE.match(lines[i])
+        if header:
+            # An array of tables ([[x]]) lists no dependencies here.
+            table = "" if header.group(1) else _table_name(header.group(2))
+            i += 1
+            continue
+        key = _TOML_KEY.match(lines[i])
+        if not key or not table:
+            i += 1
+            continue
+        name = key.group(1).strip("\"'")
+        value, i = _toml_value(lines, i, key.end())
+        if ((table == "project" and name == "dependencies")
+                or table in ("project.optional-dependencies", "dependency-groups")):
+            for item in _array_strings(value):
+                req = _requirement(item)
+                if req:
+                    found.setdefault(*req)
+        elif _is_poetry_table(table) and name.lower() != "python":
+            found.setdefault(_normalise(name), _poetry_version(value))
+    return found
+
+
+def pyproject_changes(old_text, new_text):
+    """Return the dependency detail words for two versions of a pyproject.toml."""
+    return dependency_changes(pyproject_dependencies(old_text), pyproject_dependencies(new_text))
 
 
 def requirements_changes(old_text, new_text):
