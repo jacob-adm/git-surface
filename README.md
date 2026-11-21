@@ -49,8 +49,8 @@ page. Without installing, it also runs from a clone as `python3 -m git_surface`.
 2. **Diff each branch against BASE.** For each branch, `git surface BASE` compares the branch
    with its merge base with BASE: the same changes a pull request's "files changed" shows.
    Changes BASE made after the branch left it are not the branch's.
-3. **Classify each changed path.** By its name, a path may be `ci`, `hook`, `agent`, `install`,
-   `deps` or `exec`; a file that becomes executable is `exec` too. `package.json`, `pyproject.toml` and
+3. **Classify each changed path.** By its name, a path may be `ci`, `hook`, `agent`, `repo`,
+   `install`, `deps` or `exec`; a file that becomes executable is `exec` too. `package.json`, `pyproject.toml` and
    `requirements*.txt` are read to name added and removed dependencies, version changes and
    changed install steps.
 4. **Check the added lines.** Only lines the branch adds are read. An HTML tag such as `<img>` or

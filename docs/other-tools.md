@@ -53,7 +53,7 @@ agent/docs	hidden	<!-- line 4	docs/guide.md
 
 `git surface` reads only the ref from each record and runs its own diff, so its report is the
 same with or without `git footprint` in front. Its classes are `agent`, `ci`, `deps`, `exec`,
-`hidden`, `hook` and `install`; the `deps` detail shows `name old->new` for a pinned version.
+`hidden`, `hook`, `install` and `repo`; the `deps` detail shows `name old->new` for a pinned version.
 
 **2. Paths from untrusted input to a secret, on branches that change CI** (`git surface`, then
 `trust-path --ref`, which reads the workflows from git at the branch without checking it out):
