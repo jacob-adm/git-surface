@@ -1,7 +1,9 @@
 # Using it with other tools
 
 git surface reads refs from standard input and writes TAB-separated records, so it sits in pipelines
-with other tools. This page shows the tested stacks it is part of.
+with other tools. With `--json` it writes the same records as a JSON array instead, for a CI
+script or an agent that reads JSON; see [JSON output](commands.md#json-output). This page shows
+the tested stacks it is part of.
 
 The commands on this page use [git-surface](https://github.com/jacob-adm/git-surface),
 [git-overlap](https://github.com/jacob-adm/git-overlap),
