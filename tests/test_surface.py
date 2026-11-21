@@ -223,6 +223,26 @@ class SurfaceTest(unittest.TestCase):
             [b"b", b"hidden", b"U+2066 line 2", b"src/a.py"],
             [b"b", b"hidden", b"U+2069 line 2", b"src/a.py"]]))
 
+    def test_every_invisible_character_class(self):
+        # One file per class, each character inside an otherwise ordinary string.
+        cases = {"shy": "\u00ad", "cgj": "\u034f", "hcf": "\u115f", "hjf": "\u1160",
+                 "khm": "\u17b4", "mvs": "\u180e", "lsep": "\u2028", "dep": "\u206a",
+                 "brl": "\u2800", "hf": "\u3164", "hhf": "\uffa0", "ann": "\ufff9",
+                 "sfc": "\U0001bca0", "mus": "\U0001d173", "vs": "\ufe00\ufe01",
+                 "vsa": "a\ufe0f"}
+        self.on_branch("b", {"%s.js" % name: "x = 1\ny = '%s'\n" % ch
+                             for name, ch in cases.items()})
+        code, rows = self.run_one("b")
+        self.assertEqual(code, 1)
+        found = {row[3].decode()[:-3] for row in rows if row[1] == b"hidden"}
+        self.assertEqual(found, set(cases))
+        self.assertIn([b"b", b"hidden", b"U+FE00..U+FE0F line 2", b"vs.js"], rows)
+
+    def test_emoji_variation_selector_is_ordinary(self):
+        # U+2764 U+FE0F is a red heart; U+845B U+FE00 is a CJK variant: both ordinary text.
+        self.on_branch("b", {"docs/n.md": "Thanks \u2764\ufe0f and \u845b\ufe00.\n"})
+        self.assertEqual(self.run_one("b"), (0, []))
+
     def test_leading_bom_is_not_reported(self):
         self.on_branch("b", {"docs/bom.md": "\ufeff# Title\n"})
         self.assertEqual(self.run_one("b"), (0, []))
