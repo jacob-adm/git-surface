@@ -19,7 +19,7 @@ USAGE = """usage: git surface [-z] BASE < refs
 For each ref on stdin (the first TAB-separated field of each record), report the changes
 since its merge base with BASE that touch what runs or is trusted:
   ref TAB class TAB detail TAB path
-  class: ci, deps, exec, hidden, hook or install
+  class: agent, ci, deps, exec, hidden, hook or install
 
 Exit status: 0 nothing reported, 1 something reported, 2 error. A ref that shares
 no history with BASE is named on stderr and skipped; the others are still reported.
@@ -167,7 +167,7 @@ def findings(mb, sha, zero):
         classes = classify.path_classes(path)
         name = path.rsplit(b"/", 1)[-1]
         lines = added.get(path, [])
-        for cls in ("ci", "hook", "install"):
+        for cls in ("ci", "hook", "agent", "install"):
             if cls in classes:
                 found.add((cls, status, path))
         if "exec" in classes or classify.became_executable(old_mode, new_mode):

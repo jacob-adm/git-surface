@@ -24,6 +24,17 @@ Detail: the status letter.
 
 Detail: the status letter.
 
+## agent: what a coding agent or an editor runs, or reads as instructions
+
+- Anything under `.claude/` (settings, hooks, commands, subagents, skills), `.cursor/` (rules and
+  MCP servers) or `.devcontainer/` (commands run when the container is created).
+- At the root: `.mcp.json`, `.cursorrules`, `.windsurfrules`, `.devcontainer.json`,
+  `.vscode/tasks.json` (tasks can run when the folder is opened), `.vscode/mcp.json`,
+  `.github/copilot-instructions.md`.
+- Anywhere: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`.
+
+Detail: the status letter.
+
 ## install: what runs when the project is installed or built, or when Python starts
 
 - Anywhere: `setup.py`, `sitecustomize.py`, `usercustomize.py`, `binding.gyp` (npm builds it on

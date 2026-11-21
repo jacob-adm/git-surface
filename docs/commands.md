@@ -31,7 +31,7 @@ that ref even if the records were filtered.
 ref TAB class TAB detail TAB path
 ```
 
-- `class` is one of `ci`, `deps`, `exec`, `hidden`, `hook`, `install`; see
+- `class` is one of `agent`, `ci`, `deps`, `exec`, `hidden`, `hook`, `install`; see
   [Classes](classes.md).
 - `detail` is printable ASCII and starts with git's status letter (`A` added, `M` modified, `D`
   deleted, `T` type changed) for every class except `hidden`, whose detail names what was found

@@ -40,6 +40,7 @@ class ClassesDocTest(unittest.TestCase):
         names = set()
         for group in (classify.CI_PREFIXES, classify.CI_ROOT_FILES, classify.CI_NAMES,
                       classify.HOOK_PREFIXES, classify.HOOK_ROOT_FILES,
+                      classify.AGENT_PREFIXES, classify.AGENT_ROOT_FILES, classify.AGENT_NAMES,
                       classify.INSTALL_NAMES, classify.DEPS_NAMES, classify.EXEC_NAMES):
             names.update(name.decode("ascii") for name in group)
         for suffix in (classify.INSTALL_SUFFIXES + classify.DEPS_SUFFIXES
