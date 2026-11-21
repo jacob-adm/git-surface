@@ -70,6 +70,20 @@ class SurfaceTest(unittest.TestCase):
                              "notes/claude.md": "a\n", "src/.mcp.json": "{}\n"})
         self.assertEqual(self.run_one("b"), (0, []))
 
+    def test_repo_files(self):
+        self.on_branch("b", {".gitmodules": '[submodule "l"]\n\tpath = l\n\turl = https://h/l.git\n',
+                             ".github/CODEOWNERS": "* @x\n", ".github/dependabot.yml": "version: 2\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"repo", b"A", b".github/CODEOWNERS"],
+            [b"b", b"repo", b"A", b".github/dependabot.yml"],
+            [b"b", b"repo", b"A", b".gitmodules"]]))
+
+    def test_gitattributes_only_with_a_driver(self):
+        self.on_branch("b", {".gitattributes": "* text=auto\n*.png binary\n# *.c filter=x\n",
+                             "lib/.gitattributes": "*.py diff=py filter=clean\n",
+                             "src/.gitattributes": "*.go diff=golang\n*.md merge=union\n"})
+        self.assertEqual(self.run_one("b"), (1, [[b"b", b"repo", b"A diff filter", b"lib/.gitattributes"]]))
+
     def test_exec_by_name_and_by_mode(self):
         self.on_branch("b", {"Makefile": "all:\n", "tools/run": "#!/bin/sh\n",
                              "x.sh": "echo\n"}, executable=("tools/run",))

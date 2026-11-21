@@ -41,12 +41,14 @@ class ClassesDocTest(unittest.TestCase):
         for group in (classify.CI_PREFIXES, classify.CI_ROOT_FILES, classify.CI_NAMES,
                       classify.HOOK_PREFIXES, classify.HOOK_ROOT_FILES,
                       classify.AGENT_PREFIXES, classify.AGENT_ROOT_FILES, classify.AGENT_NAMES,
+                      classify.REPO_ROOT_FILES, [classify.GITATTRIBUTES],
                       classify.INSTALL_NAMES, classify.DEPS_NAMES, classify.EXEC_NAMES):
             names.update(name.decode("ascii") for name in group)
         for suffix in (classify.INSTALL_SUFFIXES + classify.DEPS_SUFFIXES
                        + classify.EXEC_SUFFIXES + classify.MARKDOWN_SUFFIXES):
             names.add(suffix.decode("ascii"))
         names.update(classify.NPM_LIFECYCLE)
+        names.update(classify.DRIVER_ATTRIBUTES)
         for name in sorted(names):
             self.assertIn("`%s" % name.lstrip("."), doc.replace("`.", "`").replace("`*.", "`"),
                           name)
