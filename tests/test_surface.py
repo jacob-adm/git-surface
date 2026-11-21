@@ -458,7 +458,7 @@ class ErrorTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(out.startswith(b"usage: git surface"))
         code, out, _ = self.repo.surface("--version", "nope")
-        self.assertEqual((code, out), (0, b"git-surface 0.2.0\n"))
+        self.assertEqual((code, out), (0, b"git-surface 0.3.0\n"))
 
     @unittest.skipIf(os.name == "nt", "Windows file names cannot hold a TAB")
     def test_tab_in_path_needs_z(self):
