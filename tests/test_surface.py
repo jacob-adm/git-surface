@@ -160,6 +160,32 @@ class SurfaceTest(unittest.TestCase):
         self.assertEqual(self.run_one("b"), (1, [
             [b"b", b"deps", b"M +mkdocs +rich click ^8.1->^8.2", b"pyproject.toml"]]))
 
+    def test_file_a_workflow_runs(self):
+        self.repo.write(".github/workflows/t.yml", "on: push\njobs:\n  t:\n    steps:\n"
+                        "      - run: python scripts/helper.py\n      - run: ./tools/go.py --fast\n")
+        for path in ("scripts/helper.py", "tools/go.py", "lib/other.py"):
+            self.repo.write(path, "print(1)\n")
+        self.repo.commit("base")
+        self.on_branch("b", {"scripts/helper.py": "import os\n", "tools/go.py": "x = 1\n",
+                             "lib/other.py": "print(2)\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"ci", b"M named-in .github/workflows/t.yml", b"scripts/helper.py"],
+            [b"b", b"ci", b"M named-in .github/workflows/t.yml", b"tools/go.py"]]))
+
+    def test_file_a_hook_names_and_a_workflow_added_on_the_branch_names(self):
+        self.repo.write(".pre-commit-config.yaml", "repos:\n- repo: local\n  hooks:\n  - id: c\n"
+                        "    entry: python tools/check.py\n")
+        self.repo.write("tools/check.py", "1\n")
+        self.repo.write("src/b.py", "1\n")
+        self.repo.commit("base")
+        self.on_branch("b", {"tools/check.py": "2\n", "src/b.py": "2\n",
+                             ".github/workflows/n.yml": "on: push\njobs:\n  t:\n    steps:\n"
+                                                        "      - run: python src/b.py\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"ci", b"A", b".github/workflows/n.yml"],
+            [b"b", b"ci", b"M named-in .github/workflows/n.yml", b"src/b.py"],
+            [b"b", b"hook", b"M named-in .pre-commit-config.yaml", b"tools/check.py"]]))
+
     def test_requirements_added_removed_and_pinned(self):
         self.repo.write("requirements.txt", "requests==2.0\nsix==1.16.0\nidna>=2\n"
                                             "Old.Pkg==1\nflask==1.0\nattrs==22 --hash=sha256:aa\n")
