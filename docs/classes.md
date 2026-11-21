@@ -144,7 +144,17 @@ byte on an added line is treated as binary and not checked.
   - bidirectional embeddings, overrides and isolates: U+202A to U+202E, U+2066 to U+2069;
   - tag characters U+E0000 to U+E007F, reported as one kind, `U+E0000..U+E007F`;
   - supplementary variation selectors U+E0100 to U+E01EF, reported as one kind,
-    `U+E0100..U+E01EF`.
+    `U+E0100..U+E01EF`;
+  - variation selectors U+FE00 to U+FE0F, reported as one kind, `U+FE00..U+FE0F`, when one
+    follows an ASCII character or the start of a line, or when two or more stand together. A
+    single selector after any other character, as in an emoji such as U+2764 U+FE0F, is
+    ordinary text and is not reported;
+  - other characters that show nothing: U+00AD soft hyphen, U+034F combining grapheme joiner,
+    U+115F to U+1160 and U+3164 and U+FFA0 Hangul fillers, U+17B4 to U+17B5 Khmer inherent
+    vowels, U+180B to U+180F Mongolian variation selectors and vowel separator, U+2028 to U+2029
+    line and paragraph separators, U+206A to U+206F deprecated format characters, U+2800
+    Braille pattern blank, U+FFF9 to U+FFFB interlinear annotation, U+1BCA0 to U+1BCA3
+    shorthand format controls, U+1D173 to U+1D17A musical formatting characters.
 
 Detail: what was found and the line, in the new file, of its first occurrence, for example
 `<img line 12`, `<!-- line 3` or `U+202E line 40`. A file has one line per kind found.

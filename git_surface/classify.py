@@ -89,6 +89,20 @@ HIDDEN_CHARS = (
     (0x2066, 0x2069, None),  # bidi isolates
     (0xE0000, 0xE007F, "U+E0000..U+E007F"),  # tag characters
     (0xE0100, 0xE01EF, "U+E0100..U+E01EF"),  # supplementary variation selectors
+    (0xFE00, 0xFE0F, "U+FE00..U+FE0F"),  # variation selectors; see _ordinary_selector
+    (0x00AD, 0x00AD, None),  # soft hyphen
+    (0x034F, 0x034F, None),  # combining grapheme joiner
+    (0x115F, 0x1160, None),  # Hangul choseong and jungseong fillers
+    (0x17B4, 0x17B5, None),  # Khmer inherent vowels
+    (0x180B, 0x180F, None),  # Mongolian variation selectors and vowel separator
+    (0x2028, 0x2029, None),  # line and paragraph separators
+    (0x206A, 0x206F, None),  # deprecated format characters
+    (0x2800, 0x2800, None),  # Braille pattern blank
+    (0x3164, 0x3164, None),  # Hangul filler
+    (0xFFA0, 0xFFA0, None),  # halfwidth Hangul filler
+    (0xFFF9, 0xFFFB, None),  # interlinear annotation characters
+    (0x1BCA0, 0x1BCA3, None),  # shorthand format controls
+    (0x1D173, 0x1D17A, None),  # musical symbol formatting characters
 )
 _HIDDEN_RE = re.compile("[%s]" % "".join(
     "\\U%08x-\\U%08x" % (first, last) for first, last, _ in HIDDEN_CHARS))
@@ -182,8 +196,32 @@ def hidden_findings(path, added):
             # A byte-order mark as the very first character of a file is ordinary.
             if code == 0xFEFF and number == 1 and match.start() == 0:
                 continue
+            if _ordinary_selector(text, match.start()):
+                continue
             found.setdefault(_char_kind(code), number)
     return found
+
+
+def _ordinary_selector(text, index):
+    """Return True for a lone variation selector U+FE00..U+FE0F that follows a character
+    other than ASCII or another selector, as in an emoji (U+2764 U+FE0F) or a CJK variant.
+
+    A selector after ASCII, or a run of two or more, has no visible effect: that is how text
+    is hidden in an otherwise ordinary line, so it is reported.
+    """
+    code = ord(text[index])
+    if not 0xFE00 <= code <= 0xFE0F:
+        return False
+    before = text[index - 1] if index else ""
+    after = text[index + 1] if index + 1 < len(text) else ""
+
+    def selector(ch):
+        # Either block of variation selectors counts as part of a run.
+        return bool(ch) and (0xFE00 <= ord(ch) <= 0xFE0F or 0xE0100 <= ord(ch) <= 0xE01EF)
+
+    if not before or ord(before) < 0x80 or selector(before) or selector(after):
+        return False
+    return True
 
 
 def _char_kind(code):
