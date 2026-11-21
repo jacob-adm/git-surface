@@ -3,6 +3,7 @@
 
 import json
 import os
+import subprocess
 import unittest
 
 from fixtures import Repo, example_repo
@@ -25,7 +26,11 @@ class JsonTest(unittest.TestCase):
             handle.write(content)
         oid = self.repo.git("hash-object", "-w", full).strip()
         os.remove(full)
-        self.repo.git("update-index", "--add", "--cacheinfo", "100644", oid, name)
+        # Through stdin, not argv: a Windows command line cannot carry bytes that are not UTF-8.
+        proc = subprocess.run(["git", "update-index", "-z", "--index-info"], cwd=self.repo.path,
+                              env=self.repo.env, input=b"100644 " + oid + b"\t" + name + b"\0",
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_same_records_as_default_output(self):
         repo = example_repo()
@@ -47,6 +52,7 @@ class JsonTest(unittest.TestCase):
         code, out, err = self.repo.surface("--json", "main", data="clean\n")
         self.assertEqual((code, out, err), (0, b"[]\n", b""))
 
+    @unittest.skipIf(os.name == "nt", "Windows file names cannot hold a TAB")
     def test_path_lf_mode_refuses_is_written(self):
         self.repo.branch("tab")
         self.add_by_name(b".github/workflows/a\tb\x1b.yml")
