@@ -25,6 +25,13 @@ HOOK_ROOT_FILES = {b".pre-commit-config.yaml", b".pre-commit-hooks.yaml", b"left
                    b"lefthook.yaml", b".lefthook.yml", b".lefthook.yaml",
                    b"lefthook-local.yml"}
 
+# agent: files a coding agent or an editor runs, or reads as instructions.
+AGENT_PREFIXES = (b".claude/", b".cursor/", b".devcontainer/")
+AGENT_ROOT_FILES = {b".mcp.json", b".cursorrules", b".windsurfrules", b".devcontainer.json",
+                    b".vscode/tasks.json", b".vscode/mcp.json",
+                    b".github/copilot-instructions.md"}
+AGENT_NAMES = {b"AGENTS.md", b"CLAUDE.md", b"GEMINI.md"}
+
 # install: code that runs when the project is installed or built as a dependency, or when
 # Python starts.
 INSTALL_NAMES = {b"setup.py", b"sitecustomize.py", b"usercustomize.py", b"binding.gyp",
@@ -84,7 +91,7 @@ def path_classes(path):
         path: The path relative to the repository root, bytes.
 
     Returns:
-        A set drawn from "ci", "hook", "install", "deps", "exec".
+        A set drawn from "ci", "hook", "agent", "install", "deps", "exec".
     """
     name = _basename(path)
     lower = name.lower()
@@ -93,6 +100,8 @@ def path_classes(path):
         found.add("ci")
     if path.startswith(HOOK_PREFIXES) or path in HOOK_ROOT_FILES:
         found.add("hook")
+    if path.startswith(AGENT_PREFIXES) or path in AGENT_ROOT_FILES or name in AGENT_NAMES:
+        found.add("agent")
     if name in INSTALL_NAMES or lower.endswith(INSTALL_SUFFIXES):
         found.add("install")
     if (name in DEPS_NAMES or lower.endswith(DEPS_SUFFIXES)
