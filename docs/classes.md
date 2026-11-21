@@ -24,6 +24,30 @@ Detail: the status letter.
 
 Detail: the status letter.
 
+## agent: what a coding agent or an editor runs, or reads as instructions
+
+- Anything under `.claude/` (settings, hooks, commands, subagents, skills), `.cursor/` (rules and
+  MCP servers) or `.devcontainer/` (commands run when the container is created).
+- At the root: `.mcp.json`, `.cursorrules`, `.windsurfrules`, `.devcontainer.json`,
+  `.vscode/tasks.json` (tasks can run when the folder is opened), `.vscode/mcp.json`,
+  `.github/copilot-instructions.md`.
+- Anywhere: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`.
+
+Detail: the status letter.
+
+## repo: what git fetches or runs, and who reviews
+
+- At the root: `.gitmodules` (where each submodule is fetched from).
+- `CODEOWNERS`, `.github/CODEOWNERS`, `docs/CODEOWNERS` (who must review), and
+  `.github/dependabot.yml`, `.github/dependabot.yaml` (what is updated automatically).
+  Detail: the status letter.
+- `.gitattributes`, anywhere, when an added line sets a `diff`, `filter` or `merge` attribute to a
+  driver (`*.py filter=x`): git runs the command configured for that driver on the matching
+  files. Lines that start with `#` are not read. Drivers that run no command from the
+  repository's configuration are left out: `lfs` (Git LFS) and git's own drivers (`python`,
+  `golang`, `cpp` and the other built-in diff drivers, and `text`, `binary`, `union`). Detail: the status letter and each attribute
+  set, for example `M filter`.
+
 ## install: what runs when the project is installed or built, or when Python starts
 
 - Anywhere: `setup.py`, `sitecustomize.py`, `usercustomize.py`, `binding.gyp` (npm builds it on

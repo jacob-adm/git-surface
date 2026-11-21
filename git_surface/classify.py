@@ -25,6 +25,28 @@ HOOK_ROOT_FILES = {b".pre-commit-config.yaml", b".pre-commit-hooks.yaml", b"left
                    b"lefthook.yaml", b".lefthook.yml", b".lefthook.yaml",
                    b"lefthook-local.yml"}
 
+# agent: files a coding agent or an editor runs, or reads as instructions.
+AGENT_PREFIXES = (b".claude/", b".cursor/", b".devcontainer/")
+AGENT_ROOT_FILES = {b".mcp.json", b".cursorrules", b".windsurfrules", b".devcontainer.json",
+                    b".vscode/tasks.json", b".vscode/mcp.json",
+                    b".github/copilot-instructions.md"}
+AGENT_NAMES = {b"AGENTS.md", b"CLAUDE.md", b"GEMINI.md"}
+
+# repo: files that change what git fetches, or who must review and what is updated for you.
+REPO_ROOT_FILES = {b".gitmodules", b"CODEOWNERS", b".github/CODEOWNERS", b"docs/CODEOWNERS",
+                   b".github/dependabot.yml", b".github/dependabot.yaml"}
+# A .gitattributes file anywhere is repo only when an added line names a driver: git runs the
+# command configured for a filter, diff or merge driver on the matching files.
+GITATTRIBUTES = b".gitattributes"
+# Drivers that run no command from the repository's configuration: git's own diff and merge
+# drivers, and Git LFS, which runs the git-lfs the user installed.
+DRIVER_ATTRIBUTES = ("diff", "filter", "merge")
+BUILTIN_DRIVERS = {"ada", "bash", "bibtex", "cpp", "csharp", "css", "dts", "elixir", "fortran",
+                   "fountain", "golang", "html", "java", "kotlin", "markdown", "matlab", "objc",
+                   "pascal", "perl", "php", "python", "ruby", "rust", "scheme", "tex", "text",
+                   "binary", "union", "lfs"}
+_DRIVER_RE = re.compile(rb"(?:^|\s)(diff|filter|merge)=(\S+)")
+
 # install: code that runs when the project is installed or built as a dependency, or when
 # Python starts.
 INSTALL_NAMES = {b"setup.py", b"sitecustomize.py", b"usercustomize.py", b"binding.gyp",
@@ -84,7 +106,7 @@ def path_classes(path):
         path: The path relative to the repository root, bytes.
 
     Returns:
-        A set drawn from "ci", "hook", "install", "deps", "exec".
+        A set drawn from "ci", "hook", "agent", "repo", "install", "deps", "exec".
     """
     name = _basename(path)
     lower = name.lower()
@@ -93,6 +115,10 @@ def path_classes(path):
         found.add("ci")
     if path.startswith(HOOK_PREFIXES) or path in HOOK_ROOT_FILES:
         found.add("hook")
+    if path.startswith(AGENT_PREFIXES) or path in AGENT_ROOT_FILES or name in AGENT_NAMES:
+        found.add("agent")
+    if path in REPO_ROOT_FILES:
+        found.add("repo")
     if name in INSTALL_NAMES or lower.endswith(INSTALL_SUFFIXES):
         found.add("install")
     if (name in DEPS_NAMES or lower.endswith(DEPS_SUFFIXES)
@@ -102,6 +128,21 @@ def path_classes(path):
             or lower.endswith(EXEC_SUFFIXES)):
         found.add("exec")
     return found
+
+
+def attribute_drivers(added):
+    """Return the sorted driver attributes (diff, filter, merge) set on added lines.
+
+    Args:
+        added: [(new line number, line bytes)] of a .gitattributes file.
+    """
+    found = set()
+    for _, text in added:
+        if not text.lstrip().startswith(b"#"):
+            for attr, value in _DRIVER_RE.findall(text):
+                if value.decode("ascii", "replace") not in BUILTIN_DRIVERS:
+                    found.add(attr.decode("ascii"))
+    return sorted(found)
 
 
 def became_executable(old_mode, new_mode):

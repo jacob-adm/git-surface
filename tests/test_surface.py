@@ -51,6 +51,39 @@ class SurfaceTest(unittest.TestCase):
             [b"b", b"hook", b"A", b".husky/pre-commit"],
             [b"b", b"hook", b"A", b".pre-commit-config.yaml"]]))
 
+    def test_agent_and_editor_configs(self):
+        self.on_branch("b", {".claude/settings.json": '{"hooks": {}}\n', ".mcp.json": "{}\n",
+                             "pkg/AGENTS.md": "Run setup first.\n", ".cursor/rules/x.mdc": "a\n",
+                             ".devcontainer/devcontainer.json": "{}\n",
+                             ".vscode/tasks.json": "{}\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"agent", b"A", b".claude/settings.json"],
+            [b"b", b"agent", b"A", b".cursor/rules/x.mdc"],
+            [b"b", b"agent", b"A", b".devcontainer/devcontainer.json"],
+            [b"b", b"agent", b"A", b".mcp.json"],
+            [b"b", b"agent", b"A", b".vscode/tasks.json"],
+            [b"b", b"agent", b"A", b"pkg/AGENTS.md"]]))
+
+    def test_agent_names_are_exact(self):
+        # Only the listed paths: other editor settings and look-alike names are not agent files.
+        self.on_branch("b", {".vscode/settings.json": "{}\n", "docs/AGENTS.md.bak": "a\n",
+                             "notes/claude.md": "a\n", "src/.mcp.json": "{}\n"})
+        self.assertEqual(self.run_one("b"), (0, []))
+
+    def test_repo_files(self):
+        self.on_branch("b", {".gitmodules": '[submodule "l"]\n\tpath = l\n\turl = https://h/l.git\n',
+                             ".github/CODEOWNERS": "* @x\n", ".github/dependabot.yml": "version: 2\n"})
+        self.assertEqual(self.run_one("b"), (1, [
+            [b"b", b"repo", b"A", b".github/CODEOWNERS"],
+            [b"b", b"repo", b"A", b".github/dependabot.yml"],
+            [b"b", b"repo", b"A", b".gitmodules"]]))
+
+    def test_gitattributes_only_with_a_driver(self):
+        self.on_branch("b", {".gitattributes": "* text=auto\n*.png binary\n# *.c filter=x\n",
+                             "lib/.gitattributes": "*.py diff=py filter=clean\n",
+                             "src/.gitattributes": "*.go diff=golang\n*.md merge=union\n"})
+        self.assertEqual(self.run_one("b"), (1, [[b"b", b"repo", b"A diff filter", b"lib/.gitattributes"]]))
+
     def test_exec_by_name_and_by_mode(self):
         self.on_branch("b", {"Makefile": "all:\n", "tools/run": "#!/bin/sh\n",
                              "x.sh": "echo\n"}, executable=("tools/run",))
