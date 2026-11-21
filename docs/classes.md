@@ -161,3 +161,11 @@ Detail: what was found and the line, in the new file, of its first occurrence, f
 
 U+200D (zero-width joiner) is part of many emoji, so an added emoji can be reported. That is
 expected: the report says what is there, not whether it is harmful.
+
+## Files a CI or hook file names
+
+A changed file that is not itself a CI or hook file is also reported as `ci` or `hook` when a
+CI or hook file, at the merge base or on the ref, names its path: as a whole word, optionally
+after `./`, as in `run: python scripts/helper.py` or `entry: ./tools/check.py`. Only paths that
+contain a `/` or a `.` are looked for. Detail: the status letter, `named-in` and the files that
+name it, for example `M named-in .github/workflows/test.yml`.

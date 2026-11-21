@@ -153,6 +153,26 @@ def blob(oid, mode):
     return out
 
 
+def config_files(commit):
+    """Return {path: text} for the CI and hook files at a commit.
+
+    Raises:
+        Fail: git fails.
+    """
+    code, out, err = git(["ls-tree", "-r", "-z", "--full-tree", commit])
+    if code != 0:
+        raise Fail("git ls-tree failed: %s" % git_error(err, code))
+    found = {}
+    for entry in out.split(b"\0"):
+        if not entry:
+            continue
+        meta, path = entry.split(b"\t", 1)
+        mode, kind, oid = meta.split(b" ")
+        if kind == b"blob" and classify.path_classes(path) & {"ci", "hook"}:
+            found[path] = blob(oid, mode) or b""
+    return found
+
+
 def findings(mb, sha, zero):
     """Return the sorted (class, detail, path) findings for one ref.
 
@@ -161,6 +181,11 @@ def findings(mb, sha, zero):
     """
     added = added_lines(mb, sha)
     found = set()
+    # The CI and hook files at the merge base and at the ref, so a file named by either
+    # version is reported.
+    configs = config_files(mb)
+    for path, text in config_files(sha).items():
+        configs[path] = configs.get(path, b"") + b"\n" + text
     for old_mode, new_mode, old_oid, new_oid, status, path in raw_changes(mb, sha):
         check_safe(path, zero, "path")
         status = status.decode("ascii", "replace")
@@ -170,6 +195,9 @@ def findings(mb, sha, zero):
         for cls in ("ci", "hook", "agent", "repo", "install"):
             if cls in classes:
                 found.add((cls, status, path))
+        if not classes & {"ci", "hook"}:
+            for cls, names in classify.named_by(path, configs).items():
+                found.add((cls, status + " named-in " + " ".join(names), path))
         if name == classify.GITATTRIBUTES:
             drivers = classify.attribute_drivers(lines)
             if drivers:

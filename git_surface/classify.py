@@ -159,6 +159,33 @@ def attribute_drivers(added):
     return sorted(found)
 
 
+_SAFE_PATH = re.compile(rb"\A[A-Za-z0-9._/@+-]+\Z")
+
+
+def named_by(path, configs):
+    """Return {class: sorted paths} of the CI and hook files whose text names PATH.
+
+    A path is named when it appears as a whole word, optionally after "./", for example in
+    `run: python scripts/helper.py`. Only paths with a "/" or a "." are looked for, so a
+    one-word name such as "test" does not match ordinary words.
+
+    Args:
+        path: The changed path, bytes.
+        configs: {CI or hook file path: its text}, bytes.
+    """
+    if b"/" not in path and b"." not in path:
+        return {}
+    pattern = re.compile(rb"(?<![\w./-])(?:\./)?" + re.escape(path) + rb"(?![\w/.-])")
+    found = {}
+    for config, text in configs.items():
+        if config == path or not pattern.search(text):
+            continue
+        name = config.decode("ascii") if _SAFE_PATH.match(config) else "?"
+        for cls in path_classes(config) & {"ci", "hook"}:
+            found.setdefault(cls, set()).add(name)
+    return {cls: sorted(names) for cls, names in found.items()}
+
+
 def became_executable(old_mode, new_mode):
     """Return True if a file's mode is executable now and was not before (or is new)."""
     return new_mode == EXEC_MODE and old_mode != EXEC_MODE

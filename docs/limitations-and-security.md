@@ -8,8 +8,9 @@
   routine version bump; an unreported change may still be harmful.
 - **Rules are by name.** A script under an unlisted name (say `tools/deploy` without the
   executable bit), a CI system not in the list, or a build step defined inside an unlisted file
-  is not reported. A file that a listed file calls, such as a script a workflow runs, is
-  reported only if it matches a rule itself.
+  is not reported. A file that a CI or hook file calls is
+  reported when that file names its path (see [Classes](classes.md)); a path the call builds
+  (from a variable, a `working-directory`, or relative to another directory) is not followed.
 - **Dependencies are named for `package.json`, `requirements*.txt` and `pyproject.toml`
   only.** Other manifests report that they changed, not what was added, removed or
   re-versioned. In `requirements*.txt` and the PEP 621 lists of `pyproject.toml` only `==` pins
