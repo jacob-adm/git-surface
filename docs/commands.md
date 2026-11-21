@@ -1,6 +1,6 @@
 # Commands
 
-## git surface [-z] BASE
+## git surface [-z] [--json] BASE
 
 For each ref on standard input, reports the changes since its merge base with BASE that touch
 what runs or is trusted. It runs in the repository of the current directory and never changes a
@@ -48,9 +48,37 @@ ref TAB class TAB detail TAB path
 To keep only the ref, class and path: `cut -f1,2,4`. To count findings per branch:
 `cut -f1 | uniq -c`.
 
+### JSON output
+
+`--json` writes the same records, in the same order, as one JSON array of objects with the keys
+`ref`, `class`, `detail` and `path`, followed by LF. Nothing found is `[]`. For example:
+
+```json
+[
+  {
+    "class": "ci",
+    "detail": "M",
+    "path": ".github/workflows/test.yml",
+    "ref": "agent/ci"
+  }
+]
+```
+
+- JSON escapes TAB, LF and CR, so a ref or path that LF mode refuses is written.
+- The output is ASCII. Control characters are escaped (`\t`, `\n`, `\u001b`) and every
+  character outside ASCII is written as a `\uXXXX` escape, so the output is safe on a terminal.
+- A ref or path that is not valid UTF-8 keeps every byte: each byte that is not part of valid
+  UTF-8 is written as `\udc80` to `\udcff` (Python's `surrogateescape`). In Python,
+  `path.encode("utf-8", "surrogateescape")` gives back the original bytes.
+- `-z` still means NUL-separated input; the output is JSON either way.
+- The exit status is the same as without `--json`. With a ref that has no merge base, the array
+  holds the other refs' records and the exit status is 2. On any other error nothing is
+  written to standard output.
+
 ### Options
 
-- `-z`: records end with NUL instead of LF, on input and output.
+- `-z`: records end with NUL instead of LF, on input and output. With `--json`, input only.
+- `--json`: write the records as a JSON array; see [JSON output](#json-output).
 - `-h`: show usage.
 - `--version`: show the version.
 
