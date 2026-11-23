@@ -20,6 +20,12 @@ to whoever runs it.
 
 ## Install
 
+From PyPI:
+
+```
+pip install git-surface
+```
+
 From a clone:
 
 ```
@@ -28,7 +34,7 @@ cd git-surface
 pip install .
 ```
 
-pip installs `git-surface` as a console script. Check the install:
+Either way pip installs `git-surface` as a console script. Check the install:
 
 ```sh
 git surface --version
