@@ -41,7 +41,7 @@ git surface --version
 ```
 
 ```text
-git-surface 0.3.0
+git-surface 0.3.1
 ```
 
 Use `-h` for usage: `git surface --help` is answered by git itself, which looks for a manual
