@@ -1,6 +1,6 @@
 # Commands
 
-## git surface [-z] [--json] BASE
+## git surface [-z] [--json | --audit-json] BASE
 
 For each ref on standard input, reports the changes since its merge base with BASE that touch
 what runs or is trusted. It runs in the repository of the current directory and never changes a
@@ -75,10 +75,109 @@ To keep only the ref, class and path: `cut -f1,2,4`. To count findings per branc
   holds the other refs' records and the exit status is 2. On any other error nothing is
   written to standard output.
 
+### Audit result output
+
+`--audit-json` writes one JSON object in the audit result format (`audit-result/1`), for a CI
+job or an agent that runs several audit tools and reads their results the same way. Each
+finding is a `--json` record with what a reader needs to act on it: a rule id, a severity, one
+sentence that says what changed, and the evidence to check it. For the `agent/docs` branch of the
+[Quick start](../README.md#quick-start), in a repository directory named `demo`
+(`echo agent/docs | git surface --audit-json main`):
+
+```json
+{
+  "errors": [],
+  "exit": 1,
+  "findings": [
+    {
+      "evidence": {
+        "commit": "ed92b7402339cde08b373e34919b010ead8666c8",
+        "line": 4,
+        "path": "README.md",
+        "ref": "agent/docs"
+      },
+      "message": "agent/docs adds an HTML comment to README.md at line 4",
+      "record": {
+        "class": "hidden",
+        "detail": "<!-- line 4",
+        "path": "README.md",
+        "ref": "agent/docs"
+      },
+      "rule": "git-surface.hidden",
+      "severity": "high"
+    },
+    {
+      "evidence": {
+        "commit": "ed92b7402339cde08b373e34919b010ead8666c8",
+        "line": 5,
+        "path": "README.md",
+        "ref": "agent/docs"
+      },
+      "message": "agent/docs adds an <img> tag to README.md at line 5",
+      "record": {
+        "class": "hidden",
+        "detail": "<img line 5",
+        "path": "README.md",
+        "ref": "agent/docs"
+      },
+      "rule": "git-surface.hidden",
+      "severity": "high"
+    }
+  ],
+  "format": "audit-result/1",
+  "target": {
+    "base": "main",
+    "kind": "repository",
+    "name": "demo",
+    "ref": "agent/docs"
+  },
+  "tool": {
+    "name": "git-surface",
+    "version": "0.4.0"
+  }
+}
+```
+
+| Key | Value |
+| --- | --- |
+| `format` | `audit-result/1`. |
+| `tool` | `git-surface` and its version. |
+| `target` | `kind` `repository`; `name`, the name of the repository's top-level directory; `base`, BASE as given; `ref`, only when exactly one ref was read. |
+| `exit` | The exit status of the run, 0, 1 or 2. |
+| `findings` | One object per record, in the same order as the other outputs. |
+| `errors` | One object per error, with the `message` also written to standard error. |
+
+Each finding has:
+
+- `rule`: `git-surface.` and the class, for example `git-surface.ci`.
+- `severity`: fixed by the class, never by what the change contains. `high` for `agent`, `ci`,
+  `hidden`, `hook` and `install`, which run code or instruct an agent or hide text from a
+  reviewer; `medium` for `deps`, `exec` and `repo`.
+- `message`: the ref, what it does to the file (`adds`, `modifies`, `deletes` or `changes the
+  type of`), the kind of file and its path, then what the detail adds: the dependency words for
+  `deps`, `and makes it executable` for `+x`, the files that name it for `named-in`, or the
+  attributes and scripts in parentheses. For `hidden`, what was added and its line.
+- `evidence`: `path` and `ref` from the record; `commit`, the full id of the commit the ref named
+  when it was read; and, for `hidden`, `line`, the line in the new file.
+- `record`: the `--json` record, unchanged.
+
+The object is written on every run, also on an error, so a reader always gets one object:
+
+- A ref with no merge base is an entry in `errors`; the other refs' findings are kept and the
+  exit status is 2.
+- Any other error (an unknown BASE or ref, a name that cannot be written, a usage error such as
+  `--json` with `--audit-json`) stops the run: `findings` is empty, `errors` holds the message
+  and the exit status is 2.
+
+Names are written as in [JSON output](#json-output): ASCII with `\uXXXX` escapes, and bytes that
+are not UTF-8 kept as `\udc80` to `\udcff`.
+
 ### Options
 
-- `-z`: records end with NUL instead of LF, on input and output. With `--json`, input only.
+- `-z`: records end with NUL instead of LF, on input and output. With `--json` or
+  `--audit-json`, input only.
 - `--json`: write the records as a JSON array; see [JSON output](#json-output).
+- `--audit-json`: write one audit result object; see [Audit result output](#audit-result-output).
 - `-h`: show usage.
 - `--version`: show the version.
 
