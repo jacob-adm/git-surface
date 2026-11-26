@@ -7,15 +7,16 @@ straight in), diffs each against its merge base with BASE, and writes
 """
 
 import json
+import os
 import re
 import sys
 
-from . import classify
+from . import audit, classify
 from ._common import (EXIT_ERROR, EXIT_FOUND, EXIT_NOTHING, Fail, check_safe, error, git,
                       git_error, parse_args, read_records, resolve, run, show,
                       usage_and_version, write_record, write_stdout)
 
-USAGE = """usage: git surface [-z] [--json] BASE < refs
+USAGE = """usage: git surface [-z] [--json | --audit-json] BASE < refs
 
 For each ref on stdin (the first TAB-separated field of each record), report the changes
 since its merge base with BASE that touch what runs or is trusted:
@@ -28,6 +29,9 @@ no history with BASE is named on stderr and skipped; the others are still report
   -z          records end with NUL instead of LF, on input and output
   --json      write the same records as a JSON array of objects with the keys
               ref, class, detail and path
+  --audit-json
+              write one audit result object (format audit-result/1): each
+              record with a rule, a severity, a message and its evidence
   -h          show this help
   --version   show the version"""
 
@@ -253,16 +257,46 @@ def surface(argv):
     Raises:
         Fail: A usage error, an unknown BASE or ref, or an unsafe name.
     """
-    opts, positionals = parse_args(argv, ("-z", "--json", "-h", "--version"))
+    opts, positionals = parse_args(argv, ("-z", "--json", "--audit-json", "-h", "--version"))
     if usage_and_version(opts, USAGE):
         return EXIT_NOTHING
+    if not opts.get("--audit-json"):
+        return _surface(opts, positionals, None)
+    state = {"base": None, "refs": [], "findings": [], "errors": []}
+    try:
+        code = _surface(opts, positionals, state)
+    except Fail as exc:
+        # Still one parseable object: the error, and no findings from a run that stopped.
+        error(str(exc))
+        state["findings"] = []
+        state["errors"].append(str(exc))
+        code = EXIT_ERROR
+    doc = audit.result(_repo_name(), state["base"], state["refs"], state["findings"],
+                       state["errors"])
+    write_stdout(json.dumps(doc, indent=2, sort_keys=True).encode("ascii") + b"\n")
+    return code
+
+
+def _repo_name():
+    """Return the name of the top-level directory of the repository, or of the current one."""
+    code, out, _ = git(["rev-parse", "--show-toplevel"])
+    top = out.strip().decode("utf-8", "surrogateescape") if code == 0 and out.strip() else ""
+    return os.path.basename(os.path.normpath(top or os.getcwd())) or "."
+
+
+def _surface(opts, positionals, state):
+    """Run git surface; STATE is None, or a dict the --audit-json result is built from."""
+    if opts.get("--json") and state is not None:
+        raise Fail("--json and --audit-json cannot be used together")
     if len(positionals) != 1:
         raise Fail("expected exactly one BASE argument (see -h)")
     zero = bool(opts.get("-z"))
     as_json = bool(opts.get("--json"))
     # JSON escapes TAB, LF and CR, so names LF records cannot hold are written there.
-    safe = zero or as_json
+    safe = zero or as_json or state is not None
     base = positionals[0]
+    if state is not None:
+        state["base"] = _text(base) if isinstance(base, bytes) else base
     base_sha = resolve(base)
     refs = []
     seen = set()
@@ -279,6 +313,8 @@ def surface(argv):
             refs.append((number, ref, resolve(ref)))
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
+        if state is not None:
+            state["refs"].append(_text(ref))
     code = EXIT_NOTHING
     skipped = False
     rows = []
@@ -288,11 +324,17 @@ def surface(argv):
             if mb is None:
                 # Not fatal: name the ref, report the others, and exit 2 at the end.
                 error("%s: no merge base with %s" % (show(ref), show(base)))
+                if state is not None:
+                    state["errors"].append("%s: no merge base with %s" % (show(ref), show(base)))
                 skipped = True
                 continue
             for cls, detail, path in findings(mb, sha, safe):
                 code = EXIT_FOUND
-                if as_json:
+                if state is not None:
+                    row = {"ref": _text(ref), "class": cls, "detail": detail,
+                           "path": _text(path)}
+                    state["findings"].append(audit.finding(row, sha.decode("ascii")))
+                elif as_json:
                     rows.append({"ref": _text(ref), "class": cls, "detail": detail,
                                  "path": _text(path)})
                 else:
@@ -300,7 +342,7 @@ def surface(argv):
                                  zero)
         except Fail as exc:
             raise Fail("record %d: %s" % (number, exc))
-    if as_json:
+    if as_json and state is None:
         write_stdout(json.dumps(rows, indent=2, sort_keys=True).encode("ascii") + b"\n")
     return EXIT_ERROR if skipped else code
 
