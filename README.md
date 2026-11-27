@@ -19,11 +19,11 @@ A demo repository in which one branch adds an agent instruction file, a CI workf
 `package.json` with a `postinstall` script, and edits `app.py`; a second branch only edits
 `app.py`, so it is not reported:
 
-![git surface listing four changes on one branch](https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface.svg)
+<p align="center"><img src="https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface.svg" alt="git surface listing four changes on one branch"></p>
 
 The same branch with `--audit-json` (first lines of the result):
 
-![git surface --audit-json output](https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface-audit-json.svg)
+<p align="center"><img src="https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface-audit-json.svg" alt="git surface --audit-json output"></p>
 
 ## Requirements
 
