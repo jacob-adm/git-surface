@@ -124,6 +124,8 @@ changes application code, so it has no line.
 - [Running it in CI](https://github.com/jacob-adm/git-surface/blob/main/docs/ci.md): a tested GitHub Actions workflow for pull requests, and a pre-push hook.
 - [Classes](https://github.com/jacob-adm/git-surface/blob/main/docs/classes.md): every class, the paths and content each one covers, and the detail
   field.
+- [Documented attacks, replayed](https://github.com/jacob-adm/git-surface/blob/main/docs/incidents.md): published attacks rebuilt as
+  branches, what git surface reports for each, and what it cannot see.
 - [Limitations and security](https://github.com/jacob-adm/git-surface/blob/main/docs/limitations-and-security.md): what the command misses, and
   what it reads and runs.
 - [Using it with other tools](https://github.com/jacob-adm/git-surface/blob/main/docs/other-tools.md): tested stacks with
