@@ -13,6 +13,18 @@ change of that kind, so those branches get a closer look.
 It only reports. It does not block, score or rewrite anything; what to do with a report is up
 to whoever runs it.
 
+## Example output
+
+A demo repository in which one branch adds an agent instruction file, a CI workflow, a
+`package.json` with a `postinstall` script, and edits `app.py`; a second branch only edits
+`app.py`, so it is not reported:
+
+![git surface listing four changes on one branch](https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface.svg)
+
+The same branch with `--audit-json` (first lines of the result):
+
+![git surface --audit-json output](https://raw.githubusercontent.com/jacob-adm/git-surface/main/docs/screenshots/git-surface-audit-json.svg)
+
 ## Requirements
 
 - Python 3.9 or later, standard library only.
