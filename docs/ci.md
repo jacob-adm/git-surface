@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - run: python -m pip install git-surface==0.3.1
+      - run: python -m pip install git-surface==0.4.0
       - name: Report changes to what runs or is trusted
         env:
           BASE_REF: ${{ github.base_ref }}
@@ -53,7 +53,7 @@ repos:
       - id: git-surface
         name: git-surface
         language: python
-        additional_dependencies: [git-surface==0.3.1]
+        additional_dependencies: [git-surface==0.4.0]
         stages: [pre-push]
         pass_filenames: false
         always_run: true
@@ -62,13 +62,15 @@ repos:
 
 ## Tested
 
-Tested on 26 November 2026 in a test repository on GitHub, with git-surface 0.3.1:
+Tested on 27 November 2026 in a test repository on GitHub, with git-surface 0.4.0 and, beside
+it, the trust-path and release-drift recipes:
 
 | Pull request | Check |
 | --- | --- |
 | Adds a `.pth` file, the file type of the LiteLLM 1.82.8 attack (the test file held no code) | Fails: `install A litellm_init.pth` |
 | Edits `README.md` | Passes |
-| Upgrades a package, or adds a workflow (four pull requests) | Fails, with `deps` or `ci` records |
+| Adds a workflow (two pull requests) | Fails: `ci A .github/workflows/greet.yml` and `ci A .github/workflows/lint.yml` |
+| Upgrades a package in `package-lock.json` (two pull requests) | Fails: `deps M package-lock.json`, and `ci M named-in .github/workflows/release-drift.yml`, because the release-drift workflow names the lockfile |
 
 With pre-commit 4.7.0, the pre-push hook stopped a push of the `.pth` commit and let the
 `README.md` commit through.
