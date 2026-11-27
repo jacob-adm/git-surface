@@ -1,6 +1,6 @@
 # git-surface
 
-[![Test](https://github.com/jacob-adm/git-surface/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/jacob-adm/git-surface/actions/workflows/test.yml) [![PyPI](https://img.shields.io/pypi/v/git-surface?style=flat-square&color=0F6378&label=PyPI)](https://pypi.org/project/git-surface/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/jacob-adm/git-surface/main/pyproject.toml&style=flat-square&color=0F6378&label=python)](https://github.com/jacob-adm/git-surface/blob/main/pyproject.toml) [![Licence](https://img.shields.io/pypi/l/git-surface?style=flat-square&color=0F6378&label=licence)](https://github.com/jacob-adm/git-surface#license)
+[![PyPI](https://img.shields.io/pypi/v/git-surface?style=flat-square&color=0F6378&label=PyPI)](https://pypi.org/project/git-surface/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/jacob-adm/git-surface/main/pyproject.toml&style=flat-square&color=0F6378&label=python)](https://github.com/jacob-adm/git-surface/blob/main/pyproject.toml) [![Licence](https://img.shields.io/pypi/l/git-surface?style=flat-square&color=0F6378&label=licence)](https://github.com/jacob-adm/git-surface#license)
 
 git-surface is one git command, `git surface`. Installing it puts `git-surface` on your `PATH`;
 git runs any `git-NAME` program on `PATH` as `git NAME`, so no configuration is needed.
