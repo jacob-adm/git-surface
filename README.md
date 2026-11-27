@@ -13,6 +13,10 @@ change of that kind, so those branches get a closer look.
 It only reports. It does not block, score or rewrite anything; what to do with a report is up
 to whoever runs it.
 
+It is one of six audit tools that print the same result format with `--audit-json`.
+[suite-gate](https://github.com/jacob-adm/suite-gate) runs them together and gives one verdict per
+branch, as a command, a GitHub Action or an MCP server for coding agents.
+
 ## Example output
 
 A demo repository in which one branch adds an agent instruction file, a CI workflow, a
