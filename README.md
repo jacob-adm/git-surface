@@ -113,6 +113,7 @@ changes application code, so it has no line.
 
 ## Documentation
 
+- [For coding agents](https://github.com/jacob-adm/git-surface/blob/main/docs/AGENTS.md): how an agent runs git surface, reads `--audit-json` and cites the evidence.
 - [Commands](https://github.com/jacob-adm/git-surface/blob/main/docs/commands.md): input, output, options, exit status and errors.
 - [Running it in CI](https://github.com/jacob-adm/git-surface/blob/main/docs/ci.md): a tested GitHub Actions workflow for pull requests, and a pre-push hook.
 - [Classes](https://github.com/jacob-adm/git-surface/blob/main/docs/classes.md): every class, the paths and content each one covers, and the detail
