@@ -152,7 +152,12 @@ Each finding has:
 - `rule`: `git-surface.` and the class, for example `git-surface.ci`.
 - `severity`: fixed by the class, never by what the change contains. `high` for `agent`, `ci`,
   `hidden`, `hook` and `install`, which run code or instruct an agent or hide text from a
-  reviewer; `medium` for `deps`, `exec` and `repo`.
+  reviewer; `medium` for `deps`, `exec` and `repo`. One exception: a `ci` or `hook` record for a
+  file named in a CI or hook file (`named-in`) takes its severity from what the named file is:
+  `medium` for a dependency file (the parts of it that run on install are reported as `install`,
+  `high`), `low` for a documentation or image file (`.md`, `.markdown`, `.mdx`, `.rst`, `.txt`,
+  `.adoc`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.ico`), and `high` for anything
+  else, an install or build or shell file included.
 - `message`: the ref, what it does to the file (`adds`, `modifies`, `deletes` or `changes the
   type of`), the kind of file and its path, then what the detail adds: the dependency words for
   `deps`, `and makes it executable` for `+x`, the files that name it for `named-in`, or the

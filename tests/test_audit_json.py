@@ -186,6 +186,28 @@ class MessageTest(unittest.TestCase):
             self.assertIn(cls, audit.SEVERITY)
         self.assertEqual(set(audit.NOUN) | {"hidden"}, set(audit.SEVERITY))
 
+    def test_named_in_severity_follows_what_the_file_is(self):
+        def severity(cls, detail, path):
+            return audit.finding({"ref": "r", "class": cls, "detail": detail, "path": path},
+                                 "a" * 40)["severity"]
+        named = "M named-in .github/workflows/t.yml"
+        cases = [
+            ("package.json", "medium"), ("uv.lock", "medium"), ("requirements-dev.txt", "medium"),
+            ("pyproject.toml", "medium"), ("README.md", "low"), ("docs/en/docs/index.md", "low"),
+            ("docs/img/logo.png", "low"), ("scripts/docs.py", "high"), ("tools/build.sh", "high"),
+            ("Makefile", "high"), ("setup.py", "high"), ("src/app/config.yml", "high"),
+        ]
+        for path, want in cases:
+            with self.subTest(path):
+                self.assertEqual(severity("ci", named, path), want)
+        self.assertEqual(severity("hook", "M named-in .pre-commit-config.yaml", "README.md"),
+                         "low")
+        # A CI or hook file itself, and every other class, keep their fixed severity.
+        self.assertEqual(severity("ci", "M", ".github/workflows/t.yml"), "high")
+        self.assertEqual(severity("hook", "A", ".husky/pre-commit"), "high")
+        self.assertEqual(severity("install", "M scripts.postinstall", "package.json"), "high")
+        self.assertEqual(severity("deps", "M x 1->2", "package.json"), "medium")
+
     def test_line_only_for_hidden(self):
         f = audit.finding({"ref": "r", "class": "deps", "detail": "M x line 3", "path": "p"},
                           "a" * 40)

@@ -169,4 +169,6 @@ A changed file that is not itself a CI or hook file is also reported as `ci` or 
 CI or hook file, at the merge base or on the ref, names its path: as a whole word, optionally
 after `./`, as in `run: python scripts/helper.py` or `entry: ./tools/check.py`. Only paths that
 contain a `/` or a `.` are looked for. Detail: the status letter, `named-in` and the files that
-name it, for example `M named-in .github/workflows/test.yml`.
+name it, for example `M named-in .github/workflows/test.yml`. With `--audit-json`, its severity
+follows what the named file is (see [Commands](commands.md)): a dependency file is `medium`, a
+documentation or image file `low`, anything else `high`.
