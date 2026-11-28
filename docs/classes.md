@@ -140,7 +140,8 @@ byte on an added line is treated as binary and not checked.
   fenced code blocks count too.
 - In every text file, these characters:
   - zero-width and directional marks: U+200B to U+200F, U+2060 to U+2064, U+FEFF (except as
-    the first character of a file), U+061C;
+    the first character of a file), U+061C. A zero-width joiner U+200D between two emoji, as in
+    U+1F468 U+200D U+1F373 (one "cook" glyph), is ordinary text and is not reported;
   - bidirectional embeddings, overrides and isolates: U+202A to U+202E, U+2066 to U+2069;
   - tag characters U+E0000 to U+E007F, reported as one kind, `U+E0000..U+E007F`;
   - supplementary variation selectors U+E0100 to U+E01EF, reported as one kind,

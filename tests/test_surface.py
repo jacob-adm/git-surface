@@ -293,6 +293,22 @@ class SurfaceTest(unittest.TestCase):
         self.on_branch("b", {"docs/n.md": "Thanks \u2764\ufe0f and \u845b\ufe00.\n"})
         self.assertEqual(self.run_one("b"), (0, []))
 
+    def test_joiner_inside_an_emoji_is_ordinary(self):
+        # Cook (U+1F468 U+200D U+1F373), family, and rainbow flag (U+1F3F3 U+FE0F U+200D U+1F308).
+        self.on_branch("b", {"docs/e.md": "Chef \U0001f468\u200d\U0001f373 and "
+                             "\U0001f468\u200d\U0001f469\u200d\U0001f467 "
+                             "and \U0001f3f3\ufe0f\u200d\U0001f308.\n"})
+        self.assertEqual(self.run_one("b"), (0, []))
+
+    def test_joiner_in_ordinary_text_is_reported(self):
+        # Between letters, after an emoji but before a letter, and at the end of a line.
+        self.on_branch("b", {"a.md": "pay\u200dpal\n", "b.md": "x \U0001f468\u200dok\n",
+                             "c.md": "end\u200d\n"})
+        code, rows = self.run_one("b")
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(r[2:] for r in rows if r[1] == b"hidden"),
+                         [[b"U+200D line 1", n] for n in (b"a.md", b"b.md", b"c.md")])
+
     def test_leading_bom_is_not_reported(self):
         self.on_branch("b", {"docs/bom.md": "\ufeff# Title\n"})
         self.assertEqual(self.run_one("b"), (0, []))
