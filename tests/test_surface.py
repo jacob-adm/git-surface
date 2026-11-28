@@ -260,7 +260,7 @@ class SurfaceTest(unittest.TestCase):
         self.assertEqual(self.run_one("b"), (1, [
             [b"b", b"hidden", b"<!-- line 5", b"README.md"],
             [b"b", b"hidden", b"<details line 6", b"README.md"],
-            [b"b", b"hidden", b"<img line 4", b"README.md"]]))
+            [b"b", b"hidden", b"<img local line 4", b"README.md"]]))
 
     def test_hidden_characters_in_any_text_file(self):
         self.on_branch("b", {
@@ -308,6 +308,22 @@ class SurfaceTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(sorted(r[2:] for r in rows if r[1] == b"hidden"),
                          [[b"U+200D line 1", n] for n in (b"a.md", b"b.md", b"c.md")])
+
+    def test_img_kind_follows_where_the_image_is(self):
+        self.on_branch("b", {
+            "local.md": "<img src=\"/img/a.png\" class=\"illustration\">\n",
+            "ext.md": "<img src=\"https://example.invalid/a.png\">\n",
+            "track.md": "<img src=\"https://example.invalid/p.png?d=x\">\n",
+            "zero.md": "<img src=\"a.png\" width=\"0\">\n",
+            "style.md": "<img src=\"a.png\" style=\"display: none\">\n",
+            "split.md": "<img\n  src=\"a.png\">\n",
+        })
+        code, rows = self.run_one("b")
+        self.assertEqual(code, 1)
+        self.assertEqual({r[3]: r[2] for r in rows if r[1] == b"hidden"}, {
+            b"local.md": b"<img local line 1", b"ext.md": b"<img external line 1",
+            b"track.md": b"<img external line 1", b"zero.md": b"<img line 1",
+            b"style.md": b"<img line 1", b"split.md": b"<img line 1"})
 
     def test_leading_bom_is_not_reported(self):
         self.on_branch("b", {"docs/bom.md": "\ufeff# Title\n"})
@@ -370,7 +386,7 @@ class SurfaceTest(unittest.TestCase):
     def test_quoted_path_is_matched(self):
         self.on_branch("b", {"d\u00e9j\u00e0 vu/notes.md": "<img src=x>\n"})
         self.assertEqual(self.run_one("b"), (1, [
-            [b"b", b"hidden", b"<img line 1", "d\u00e9j\u00e0 vu/notes.md".encode("utf-8")]]))
+            [b"b", b"hidden", b"<img local line 1", "d\u00e9j\u00e0 vu/notes.md".encode("utf-8")]]))
 
     def test_subdirectory_paths_are_root_relative(self):
         self.on_branch("b", {".github/workflows/x.yml": "on: push\n"})

@@ -157,8 +157,20 @@ byte on an added line is treated as binary and not checked.
     Braille pattern blank, U+FFF9 to U+FFFB interlinear annotation, U+1BCA0 to U+1BCA3
     shorthand format controls, U+1D173 to U+1D17A musical formatting characters.
 
+An `<img>` tag is reported by where its image is and whether a reader can see it. An image a
+reader cannot see can track who opens the page; an image on another server makes the reader's
+viewer fetch from that server. A URL committed to the repository is fixed text anyone can read,
+so a query string in it is not treated as data leaving (status badges use them):
+
+- `<img local`: a relative path (an image in the repository) or an inline `data:` image;
+- `<img external`: an image on another server, with or without a query string;
+- `<img`: anything else: an image sized zero (`width` or `height` 0) or hidden (`hidden`, or a
+  style with `display: none`, `visibility: hidden`, `opacity: 0` or a zero width or height),
+  another URL scheme, no `src`, or a tag not closed on its line.
+
 Detail: what was found and the line, in the new file, of its first occurrence, for example
-`<img line 12`, `<!-- line 3` or `U+202E line 40`. A file has one line per kind found.
+`<img line 12`, `<img local line 5`, `<!-- line 3` or `U+202E line 40`. A file has one line per
+kind found.
 
 U+200D (zero-width joiner) is part of many emoji, so an added emoji can be reported. That is
 expected: the report says what is there, not whether it is harmful.

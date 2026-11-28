@@ -157,7 +157,8 @@ Each finding has:
   `medium` for a dependency file (the parts of it that run on install are reported as `install`,
   `high`), `low` for a documentation or image file (`.md`, `.markdown`, `.mdx`, `.rst`, `.txt`,
   `.adoc`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.ico`), and `high` for anything
-  else, an install or build or shell file included.
+  else, an install or build or shell file included. In `hidden`, an `<img local` record is
+  `low` and an `<img external` record `medium`; every other hidden kind is `high`.
 - `message`: the ref, what it does to the file (`adds`, `modifies`, `deletes` or `changes the
   type of`), the kind of file and its path, then what the detail adds: the dependency words for
   `deps`, `and makes it executable` for `+x`, the files that name it for `named-in`, or the

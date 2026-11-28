@@ -216,6 +216,8 @@ def hidden_findings(path, added):
             for match in HTML.finditer(line):
                 tag = match.group(1)
                 kind = "<" + tag.decode("ascii").lower() if tag else "<!--"
+                if kind == "<img" and b"/" not in match.group(0):
+                    kind = _img_kind(line[match.end():])
                 found.setdefault(kind, number)
         text = line.decode("utf-8", "replace")
         for match in _HIDDEN_RE.finditer(text):
@@ -227,6 +229,43 @@ def hidden_findings(path, added):
                 continue
             found.setdefault(_char_kind(code), number)
     return found
+
+
+_ATTR = re.compile(rb"""([A-Za-z_:][-A-Za-z0-9_:.]*)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?""")
+_ZERO = re.compile(rb"\A\s*0+(?:\.0*)?\s*(?:px)?\s*\Z")
+_HIDING_STYLE = re.compile(rb"display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?![.\d])"
+                           rb"|(?:width|height)\s*:\s*0(?![.\d])", re.I)
+
+
+def _img_kind(rest):
+    """Return the hidden kind for an <img> tag, from REST, the bytes after "<img" on its line.
+
+    "<img" (reported high): the image is sized zero or styled hidden, its URL has a scheme
+    other than http(s) or data, it has no src, or the tag cannot be read on this line.
+    "<img external": an image on another server. A query string does not raise it: a URL
+    committed to the repository is fixed text anyone can read, so it carries no secret, and
+    status badges use query strings.
+    "<img local": an image in the repository (a relative path) or inline (data:).
+    """
+    end = rest.find(b">")
+    if end < 0:
+        return "<img"
+    attrs = {}
+    for name, value in _ATTR.findall(rest[:end]):
+        value = value[1:-1] if value[:1] in (b'"', b"'") else value
+        attrs.setdefault(name.lower(), value)
+    if (b"hidden" in attrs or _HIDING_STYLE.search(attrs.get(b"style", b""))
+            or any(_ZERO.match(attrs[k]) for k in (b"width", b"height") if k in attrs)):
+        return "<img"
+    src = attrs.get(b"src")
+    if src is None:
+        return "<img"
+    src = src.strip()
+    if re.match(rb"(?i)\A(?:[a-z][a-z0-9+.-]*:)?//", src):
+        return "<img external"
+    if re.match(rb"(?i)\A[a-z][a-z0-9+.-]*:", src) and not src.lower().startswith(b"data:"):
+        return "<img"
+    return "<img local"
 
 
 def _ordinary_selector(text, index):
