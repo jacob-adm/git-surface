@@ -8,10 +8,12 @@ severity for its class, a one-sentence message and the evidence a reader needs t
 import re
 
 from . import __version__
+from .classify import path_classes
 
 FORMAT = "audit-result/1"
 
-# Fixed per class; see docs/commands.md. Nothing here depends on what the change contains.
+# Fixed per class; see docs/commands.md. Nothing here depends on what the change contains,
+# except a file named in a CI or hook file: see named_severity.
 SEVERITY = {
     "agent": "high", "ci": "high", "hidden": "high", "hook": "high", "install": "high",
     "deps": "medium", "exec": "medium", "repo": "medium",
@@ -61,6 +63,28 @@ def message(ref, cls, detail, path):
     return text
 
 
+# Documentation and image files: a CI or hook file may read them, but they do not run.
+DATA_SUFFIXES = (".md", ".markdown", ".mdx", ".rst", ".txt", ".adoc", ".png", ".jpg", ".jpeg",
+                 ".gif", ".svg", ".webp", ".ico")
+
+
+def named_severity(path):
+    """Return the severity of a ci or hook record for PATH, a file named in a CI or hook file.
+
+    The file runs only if it is code. A dependency file is medium: the parts of it that run
+    when installed (npm install scripts, a pyproject [build-system]) are reported separately
+    as install, high. A documentation or image file is low. Anything else is high.
+    """
+    classes = path_classes(path.encode("utf-8", "surrogateescape"))
+    if classes & {"install", "exec"}:
+        return "high"
+    if "deps" in classes:
+        return "medium"
+    if path.lower().endswith(DATA_SUFFIXES):
+        return "low"
+    return "high"
+
+
 def finding(row, commit):
     """Return the audit finding for one --json record; COMMIT is the ref's tip commit id."""
     evidence = {"path": row["path"], "ref": row["ref"], "commit": commit}
@@ -70,7 +94,8 @@ def finding(row, commit):
             evidence["line"] = int(match.group(2))
     return {
         "rule": "git-surface." + row["class"],
-        "severity": SEVERITY.get(row["class"], "high"),
+        "severity": (named_severity(row["path"]) if row["detail"].partition(" ")[2]
+                     .startswith("named-in ") else SEVERITY.get(row["class"], "high")),
         "message": message(row["ref"], row["class"], row["detail"], row["path"]),
         "evidence": evidence,
         "record": row,
