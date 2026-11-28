@@ -223,7 +223,7 @@ def hidden_findings(path, added):
             # A byte-order mark as the very first character of a file is ordinary.
             if code == 0xFEFF and number == 1 and match.start() == 0:
                 continue
-            if _ordinary_selector(text, match.start()):
+            if _ordinary_selector(text, match.start()) or _emoji_joiner(text, match.start()):
                 continue
             found.setdefault(_char_kind(code), number)
     return found
@@ -249,6 +249,34 @@ def _ordinary_selector(text, index):
     if not before or ord(before) < 0x80 or selector(before) or selector(after):
         return False
     return True
+
+
+# Code points that start an emoji: pictographs, symbols and the few older characters that
+# have an emoji form. Used only to tell a joiner inside an emoji from one in ordinary text.
+_EMOJI = ((0x1F000, 0x1FAFF), (0x2600, 0x27BF), (0x2300, 0x23FF), (0x2B00, 0x2BFF),
+          (0x2190, 0x21FF), (0x2934, 0x2935), (0x3030, 0x3030), (0x303D, 0x303D),
+          (0x3297, 0x3297), (0x3299, 0x3299), (0x00A9, 0x00A9), (0x00AE, 0x00AE),
+          (0x203C, 0x203C), (0x2049, 0x2049), (0x2122, 0x2122), (0x2139, 0x2139))
+
+
+def _emoji_joiner(text, index):
+    """Return True for a zero-width joiner U+200D between two emoji, as in U+1F468 U+200D
+    U+1F373 (one "cook" glyph). An emoji presentation selector U+FE0F may stand before it.
+
+    A joiner next to ordinary text, or at either end of a line, has no visible effect, so it
+    is reported.
+    """
+    if ord(text[index]) != 0x200D:
+        return False
+    before = index - 1
+    if before >= 0 and ord(text[before]) == 0xFE0F:
+        before -= 1
+    after = index + 1
+
+    def emoji(i):
+        return 0 <= i < len(text) and any(a <= ord(text[i]) <= b for a, b in _EMOJI)
+
+    return emoji(before) and emoji(after)
 
 
 def _char_kind(code):
