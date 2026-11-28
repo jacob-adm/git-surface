@@ -46,7 +46,7 @@ class AdversarialTest(unittest.TestCase):
     def test_crlf_markdown_keeps_line_numbers(self):
         self.branch_with("b", {"notes.md": b"a\r\nb\r\n<img src=x>\r\n" + RLO.encode() + b"\r\n"})
         self.assertEqual(self.run_lines("b\n"), (1, [
-            b"b\thidden\t<img line 3\tnotes.md",
+            b"b\thidden\t<img local line 3\tnotes.md",
             b"b\thidden\tU+202E line 4\tnotes.md"]))
 
     def test_lfs_pointer_is_plain_text(self):

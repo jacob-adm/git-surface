@@ -208,6 +208,20 @@ class MessageTest(unittest.TestCase):
         self.assertEqual(severity("install", "M scripts.postinstall", "package.json"), "high")
         self.assertEqual(severity("deps", "M x 1->2", "package.json"), "medium")
 
+    def test_img_severity_follows_where_the_image_is(self):
+        def finding(detail):
+            return audit.finding({"ref": "r", "class": "hidden", "detail": detail, "path": "a.md"},
+                                 "a" * 40)
+        self.assertEqual(finding("<img local line 2")["severity"], "low")
+        self.assertEqual(finding("<img external line 2")["severity"], "medium")
+        self.assertEqual(finding("<img line 2")["severity"], "high")
+        self.assertEqual(finding("<picture line 2")["severity"], "high")
+        self.assertEqual(finding("<!-- line 2")["severity"], "high")
+        self.assertEqual(finding("<img local line 2")["message"],
+                         "r adds an <img> tag showing an image from the repository to a.md "
+                         "at line 2")
+        self.assertEqual(finding("<img local line 2")["evidence"]["line"], 2)
+
     def test_line_only_for_hidden(self):
         f = audit.finding({"ref": "r", "class": "deps", "detail": "M x line 3", "path": "p"},
                           "a" * 40)

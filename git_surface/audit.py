@@ -30,8 +30,16 @@ VERB = {"A": "adds", "M": "modifies", "D": "deletes", "T": "changes the type of"
 _HIDDEN = re.compile(r"\A(.+) line ([1-9][0-9]*)\Z")
 
 
+# Hidden kinds with their own severity; every other hidden kind is high.
+HIDDEN_SEVERITY = {"<img external": "medium", "<img local": "low"}
+
+
 def _what(found):
     """Name a hidden-content kind as reported in the detail, e.g. "<img" or "U+202E"."""
+    if found == "<img external":
+        return "an <img> tag showing an image from another server"
+    if found == "<img local":
+        return "an <img> tag showing an image from the repository"
     if found == "<!--":
         return "an HTML comment"
     if found.startswith("</"):
@@ -88,14 +96,16 @@ def named_severity(path):
 def finding(row, commit):
     """Return the audit finding for one --json record; COMMIT is the ref's tip commit id."""
     evidence = {"path": row["path"], "ref": row["ref"], "commit": commit}
+    severity = None
     if row["class"] == "hidden":
         match = _HIDDEN.match(row["detail"])
         if match:
             evidence["line"] = int(match.group(2))
+            severity = HIDDEN_SEVERITY.get(match.group(1))
     return {
         "rule": "git-surface." + row["class"],
-        "severity": (named_severity(row["path"]) if row["detail"].partition(" ")[2]
-                     .startswith("named-in ") else SEVERITY.get(row["class"], "high")),
+        "severity": severity or (named_severity(row["path"]) if row["detail"].partition(" ")[2]
+                                 .startswith("named-in ") else SEVERITY.get(row["class"], "high")),
         "message": message(row["ref"], row["class"], row["detail"], row["path"]),
         "evidence": evidence,
         "record": row,
